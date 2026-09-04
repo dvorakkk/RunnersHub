@@ -23,4 +23,4 @@ Based on the latest Phase 5C mobile menu + filter fixes.
 - Road: blue #38bdf8.
 - Mixed cluster: purple #8b5cf6.
 - Upload preview updates immediately when Trail/Road selection changes.
-
+- All Phase 5D clustering, focus mode, clear-focus control, route-card sync, and Phase 5C mobile/filter fixes are preserved.
