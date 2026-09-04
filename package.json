@@ -1,0 +1,12 @@
+{
+  "name": "runnershub-vercel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RunnersHub — discover and share trail and road running routes, powered by Google Sheets + Drive.",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "googleapis": "^140.0.1"
+  }
+}
