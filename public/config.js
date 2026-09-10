@@ -103,10 +103,12 @@ const RUNNERSHUB_CONFIG = Object.freeze({
     height: 1920,
     fps: 30,
     durationSeconds: 20,
-    // Recording bitrate in bits/s. The browser default is too low for a
-    // 1080×1920 clip and produces blocking/blur on fast camera moves.
-    // 16 Mbps ≈ 0.25 bit/pixel/frame at 1080×1920×30. Set 0 for auto.
-    videoBitrate: 16000000,
+    // Recording bitrate in bits/s. MediaRecorder ALWAYS compresses (there is no
+    // raw/uncompressed mode in the browser), but at a high bitrate H.264 High is
+    // visually lossless: 40 Mbps ≈ 0.6 bit/pixel/frame at 1080×1920×30
+    // (~150 MB per 30 s). Set 0 for auto (0.25 bppf), raise to 60000000+ if you
+    // want even less compression and do not care about file size.
+    videoBitrate: 40000000,
     // Fraction of the frame height kept clear at the bottom of the video, so the
     // elevation HUD is never hidden behind Instagram/TikTok captions, buttons or
     // the comment bar. 0 = no offset, 0.10 = default safe area.
@@ -118,7 +120,9 @@ const RUNNERSHUB_CONFIG = Object.freeze({
     // grade-adjusted and every derived value is shown with "≈".
     assumedPaceSecPerKm: 360,
     watermark: "RunnersHub",
-    camera: Object.freeze({ headingResponse: 3.2, maxTurnPerSecond: 50, positionResponse: 10.0, lookAheadMeters: 110, lookBehindMeters: 35, zoomStart: 15.2, zoomEnd: 12.0, zoomMin: 11.6, zoomMax: 15.6, pitchStart: 64, pitchEnd: 42, pitchMin: 38, pitchMax: 74, easeMs: 90, tailSeconds: 1.5 }),
+    // camera.easeMs: 0 = apply the damped camera state every frame (recommended,
+    // no stutter). Set 90 to restore the older "easeTo every frame" behaviour.
+    camera: Object.freeze({ headingResponse: 3.2, maxTurnPerSecond: 50, positionResponse: 10.0, lookAheadMeters: 110, lookBehindMeters: 35, zoomStart: 15.2, zoomEnd: 12.0, zoomMin: 11.6, zoomMax: 15.6, pitchStart: 64, pitchEnd: 42, pitchMin: 38, pitchMax: 74, easeMs: 0, tailSeconds: 1.5 }),
     map: Object.freeze({
       terrainUrl: "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png",
       exaggeration: 1.15

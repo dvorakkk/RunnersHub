@@ -51,6 +51,7 @@ const RATE_LIMITS = {
   addLikeReward: { limit: 240, windowMs: 24 * 60 * 60 * 1000 },
   addCommentReward: { limit: 120, windowMs: 24 * 60 * 60 * 1000 },
   claimFlyoverShare: { limit: 12, windowMs: 24 * 60 * 60 * 1000 },
+  chargeFlyover: { limit: 12, windowMs: 24 * 60 * 60 * 1000 },
   unlockRoute:   { limit: 30, windowMs: 10 * 60 * 1000 }
 };
 
@@ -230,6 +231,14 @@ module.exports = async function handler(req, res) {
       case "getComments":
         result = await getComments(payload.routeId);
         break;
+      case "chargeFlyover": {
+        const runnerId = String(payload.runnerId || "");
+        const activityId = String(payload.activityId || "");
+        const cost = Number(payload.pointsCost || 40);
+        const wallet = await chargeFlyover(runnerId, activityId, cost);
+        result = { charged: true, cost, wallet };
+        break;
+      }
       case "getRewards":
         result = await getWallet(payload.runnerId);
         break;
@@ -301,7 +310,8 @@ module.exports = async function handler(req, res) {
         const runnerId = String(payload.runnerId || '');
         const activityId = String(payload.activityId || '');
         if (!/^[A-Za-z0-9_-]{16,80}$/.test(runnerId)) throw new Error("Invalid anonymous runner ID");
-        if (!/^\d{5,}$/.test(activityId)) throw new Error("Valid Strava activity ID is required");
+        // Accepts Strava numeric IDs AND GPX imports ("gpx-<timestamp>").
+        if (!/^[A-Za-z0-9_-]{3,120}$/.test(String(activityId || ""))) throw new Error("Valid activity ID is required");
         const cost = Number(payload.pointsCost || 40);
         const pointsEnabled = !!require('../public/config.js').points.enabled;
         let wallet = await getWallet(runnerId);

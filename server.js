@@ -71,7 +71,8 @@ const db = {
   // Mirrors the server-side reward bookkeeping (lib/rewards.js) closely enough
   // for local testing: once-per-route events and verified share unlocks.
   rewardEvents: new Set(),
-  shareUnlocks: new Set()
+  shareUnlocks: new Set(),
+  flyoverShares: new Set()
 };
 function todayKey(){ return new Date().toISOString().slice(0, 10); }
 function newWallet(runnerId){
@@ -414,8 +415,23 @@ async function mockApiResult(action, payload) {
       w.points = Number(w.points || 0) + pts;
       return { ...w, reward: true, points: pts, likeReward: kind === 'like', commentReward: kind === 'comment' };
     }
+    case 'claimFlyoverShare': {
+      const runnerId=String(payload.runnerId||'');
+      const aid=String(payload.activityId||'');
+      db.flyoverShares.add(runnerId+':'+aid);
+      return { unlocked:true, alreadyUnlocked:false, wallet:walletFor(runnerId) };
+    }
+    case 'chargeFlyover': {
+      const runnerId=String(payload.runnerId||'');
+      const cost=Number(payload.pointsCost||40);
+      const w=walletFor(runnerId);
+      if(Number(w.points||0)<cost){
+        throw new Error(`You need ${cost} points to export this flyover. You have ${Number(w.points||0)}.`);
+      }
+      w.points=Number(w.points||0)-cost;
+      return { charged:true, cost, wallet:w };
+    }
     case 'claimAdReward':
-    case 'claimFlyoverShare':
       return { ...walletFor(payload.runnerId), claimed: true, uploadReward: false, rewardsDisabled: true };
     case 'deleteRoute': {
       const routeId = String(payload.routeId || '');

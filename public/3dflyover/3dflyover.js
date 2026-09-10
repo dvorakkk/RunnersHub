@@ -1,7 +1,7 @@
 /* PHASE 5F v11 — 3D Flyover modular orchestrator */
-import { buildCameraModel, pointAtDistance, cameraSample, bearingBetween } from './route-simplifier.js?v=21';
-import { createCinematicCamera } from './camera.js?v=21';
-import { parseGpxPoints } from './gpx-parser.js?v=22';
+import { buildCameraModel, pointAtDistance, cameraSample, bearingBetween } from './route-simplifier.js?v=28';
+import { createCinematicCamera } from './camera.js?v=28';
+import { parseGpxPoints } from './gpx-parser.js?v=28';
 (function(){
   const state={mounted:false,map:null,marker:null,activity:null,route:null,gpxPoints:null,terrainProfile:null,playing:false,paused:false,raf:0,startedAt:0,pausedAt:0,pausedElapsed:0,previewModel:null,markerModel:null,previewProgress:0,markerStyle:'runner',runnerDot:false,markerColor:'#FC5200',mapLibre:null,lineColor:'#38BDF8',cameraController:null,durationSeconds:20,lineWidth:5,cameraSpeed:1,
     hudProgress:0,elevModel:null,paceModel:null,hudTotalM:0,paceEstimated:false,
@@ -104,6 +104,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
   const C3_VIDEO_TYPES=[
     // High/Main profile before Baseline: noticeably cleaner on fast camera
     // moves at the same bitrate (better motion estimation + CABAC).
+    {mime:'video/mp4;codecs=avc1.640033,mp4a.40.2',ext:'mp4'},
     {mime:'video/mp4;codecs=avc1.640028,mp4a.40.2',ext:'mp4'},
     {mime:'video/mp4;codecs=avc1.4D4028,mp4a.40.2',ext:'mp4'},
     {mime:'video/mp4;codecs=avc1.42E01E,mp4a.40.2',ext:'mp4'},
@@ -1117,6 +1118,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     try{
       if(typeof ShareGate==='undefined')throw new Error('share gate not loaded');
       ShareGate.mode='flyover';
+      try{if(typeof setShareGateCopy==='function')setShareGateCopy('flyover');}catch(_){}
       ShareGate.activityId=String(state.activity&&state.activity.id||'');
       ShareGate.routeId='';ShareGate.triggerBtn=null;ShareGate.selectedPlatform=null;
       const ov=document.getElementById('share-gate-overlay');
@@ -1544,8 +1546,8 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     const cfgBitrate=Number(C().videoBitrate);
     const autoBitrate=Math.round(outCanvas.width*outCanvas.height*fps*0.25);
     const bitrate=cfgBitrate>0
-      ? Math.max(2000000,Math.min(60000000,cfgBitrate))
-      : Math.max(6000000,Math.min(40000000,autoBitrate));
+      ? Math.max(2000000,Math.min(120000000,cfgBitrate))
+      : Math.max(8000000,Math.min(80000000,autoBitrate));
     let rec;
     try{rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:bitrate});}
     catch(_){
@@ -1574,27 +1576,35 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
       await new Promise(r=>requestAnimationFrame(r));
     }catch(_){srcVideo=null;}
     buildHudModels();
-    // ─── Frame pacing ──────────────────────────────────────────────────────
-    // Painting on every requestAnimationFrame (60 Hz) while the camera only
-    // produces ~30 frames/s meant some frames were drawn twice and some were
-    // skipped. That irregular cadence is exactly what shows up as blips /
-    // stutter on fast camera moves. Now we paint once per SOURCE frame, and the
-    // source never switches mid-recording (switching flashes a different image).
-    let haveFrame=false,frameReady=!srcVideo,paintStop=false,useFrameMark=false;
-    if(srcVideo&&typeof srcVideo.requestVideoFrameCallback==='function'){
+    // ─── Frame source & pacing ────────────────────────────────────────────
+    // The export must contain exactly the frames MapLibre rendered. Routing them
+    // through a <video> (decode + presentation queue) is what produced blips on
+    // fast camera moves: frames arrive late, twice, or not at all. With
+    // preserveDrawingBuffer:true we can copy the WebGL canvas directly, and
+    // map.on('render') tells us precisely when a new frame exists.
+    let haveFrame=false,frameReady=true,paintStop=false,useFrameMark=false;
+    let mapRenderHandler=null,sourceMode='canvas';
+    try{
+      outCtx.drawImage(mapCanvas,0,0,outCanvas.width,outCanvas.height);
+      const px=outCtx.getImageData(Math.floor(outCanvas.width/2),Math.floor(outCanvas.height/2),1,1).data;
+      const drewSomething=px[3]!==0||px[0]||px[1]||px[2];
+      sourceMode=drewSomething?'canvas':(srcVideo?'video':'canvas');
+    }catch(_){sourceMode=srcVideo?'video':'canvas';}
+    if(state.map&&typeof state.map.on==='function'){
+      try{mapRenderHandler=()=>{frameReady=true;};state.map.on('render',mapRenderHandler);useFrameMark=true;}
+      catch(_){mapRenderHandler=null;}
+    }
+    if(!useFrameMark&&srcVideo&&typeof srcVideo.requestVideoFrameCallback==='function'){
       useFrameMark=true;
       const mark=()=>{frameReady=true;if(!paintStop){try{srcVideo.requestVideoFrameCallback(mark);}catch(_){useFrameMark=false;}}};
       try{srcVideo.requestVideoFrameCallback(mark);}catch(_){useFrameMark=false;}
     }
-    const paintFrame=(useLiveCanvas)=>{
+    const paintFrame=(forceCanvas)=>{
       try{
         const w=outCanvas.width,h=outCanvas.height;
         let drew=false;
-        if(srcVideo&&!useLiveCanvas){
-          if(srcVideo.readyState>=2&&srcVideo.videoWidth>0){outCtx.drawImage(srcVideo,0,0,w,h);drew=true;}
-        }else{
-          outCtx.drawImage(mapCanvas,0,0,w,h);drew=true;
-        }
+        if(forceCanvas||sourceMode==='canvas'){outCtx.drawImage(mapCanvas,0,0,w,h);drew=true;}
+        else if(srcVideo&&srcVideo.readyState>=2&&srcVideo.videoWidth>0){outCtx.drawImage(srcVideo,0,0,w,h);drew=true;}
         if(!drew){
           // Nothing new from the camera: keep the previous frame on screen.
           // Never repaint and never switch source — both flash.
@@ -1610,11 +1620,9 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     const tick=()=>{
       if(paintStop)return;
       paintRaf=requestAnimationFrame(tick);
-      // Outro: the camera is static, so keep painting (the card animates) using
-      // the live canvas — valid at any time thanks to preserveDrawingBuffer.
-      // useFrameMark=false (no requestVideoFrameCallback) → paint every rAF, the
-      // old behaviour, which is still correct — just less evenly paced.
-      if(!srcVideo||!useFrameMark||frameReady){frameReady=false;paintFrame(false);}
+      // One composite per rendered frame. During the outro the camera is static,
+      // so we keep painting (the statistics card animates) from the live canvas.
+      if(!useFrameMark||frameReady){frameReady=false;paintFrame(false);}
       else if(cardAt){paintFrame(true);}
     };
     paintFrame(false);               // paint the first frame right away
@@ -1644,6 +1652,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     }catch(e){return {ok:false,error:'Recording failed: '+(e.message||e)};}
     finally{
       paintStop=true;
+      try{if(mapRenderHandler&&state.map&&typeof state.map.off==='function')state.map.off('render',mapRenderHandler);}catch(_){}
       if(paintRaf)cancelAnimationFrame(paintRaf);paintRaf=0;cardAt=0;
       try{if(srcVideo){srcVideo.pause();srcVideo.srcObject=null;}}catch(_){}
       try{if(srcStream&&srcStream.getTracks)srcStream.getTracks().forEach(t=>{try{t.stop();}catch(_){}});}catch(_){}

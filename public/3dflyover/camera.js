@@ -90,10 +90,13 @@ export function createCinematicCamera({map,config={}}){
       }
 
       // ── Apply to MapLibre ──────────────────────────────────────────────────
-      // instant/scrub → jumpTo (zero latency); normal playback → easeTo so
-      // MapLibre's internal GPU easing bridges the gap between JS ticks and
-      // prevents any visible stutter from requestAnimationFrame jitter.
-      if(instant||!animate){
+      // Apply the smoothed state directly (jumpTo) unless easeMs > 0.
+      // Calling easeTo on EVERY frame restarts MapLibre's internal animation from
+      // a mid-flight position, so the camera chases a moving target and never
+      // quite arrives — that shows up as micro-stutter/blips on fast turns.
+      // Our own per-frame damping already shapes the motion, so setting the
+      // camera state exactly is both smoother and frame-accurate.
+      if(instant||!animate||!(c.easeMs>0)){
         map.jumpTo({center:[center[0],center[1]],zoom,pitch,bearing});
       }else{
         map.easeTo({
