@@ -5,7 +5,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
 (function(){
   const state={mounted:false,map:null,marker:null,activity:null,route:null,gpxPoints:null,terrainProfile:null,playing:false,paused:false,raf:0,startedAt:0,pausedAt:0,pausedElapsed:0,previewModel:null,markerModel:null,previewProgress:0,markerStyle:'runner',runnerDot:false,markerColor:'#FC5200',mapLibre:null,lineColor:'#38BDF8',cameraController:null,durationSeconds:20,lineWidth:5,cameraSpeed:1,
     hudProgress:0,elevModel:null,paceModel:null,hudTotalM:0,paceEstimated:false,
-    aspectIndex:0,statPrefs:null,lastVideo:null};
+    aspectIndex:0,statPrefs:null,lastVideo:null,routeType:'Trail',flyoverShared:false,generateConfirmed:false};
   const C=()=>window.RUNNERSHUB_CONFIG?.threeD||{};
   // Debug overlay (perf counters) is a development tool: it must never pop up
   // for real visitors on the deployed site.
@@ -36,6 +36,17 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
   // instead of resetting to defaults every time the page is opened.
   const C3_PREFS_KEY='runnershub.create3d.prefs.v1';
   // Export frame ratios (index 0 = the classic vertical social clip).
+  // Route type is a display choice: GPX files have no sport field, so the user
+  // picks Road/Trail and it shows up on the finish card and in the summary.
+  const C3_ROUTE_TYPES=['Trail','Road'];
+  function setRouteType(type){
+    state.routeType=C3_ROUTE_TYPES.includes(type)?type:'Trail';
+    document.querySelectorAll('[data-c3-route-type]').forEach(b=>b.classList.toggle('active',b.dataset.c3RouteType===state.routeType));
+    if(state.activity)state.activity.sportType=state.routeType;
+    try{renderStats();}catch(_){}
+    if(state.activity&&!state.playing)showFinish();
+    savePrefs();
+  }
   const C3_ASPECTS=[
     {label:'9:16', w:9,  h:16, target:'1080 × 1920'},
     {label:'1:1',  w:1,  h:1,  target:'1080 × 1080'},
@@ -52,6 +63,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     if(Number.isFinite(p.cameraSpeed))state.cameraSpeed=Math.max(.5,Math.min(2,p.cameraSpeed));
     if(Number.isFinite(p.lineWidth))state.lineWidth=Math.max(2,Math.min(10,p.lineWidth));
     if(Number.isFinite(p.aspectIndex))state.aspectIndex=Math.max(0,Math.min(C3_ASPECTS.length-1,Math.round(p.aspectIndex)));
+    if(C3_ROUTE_TYPES.includes(p.routeType))state.routeType=p.routeType;
     state.statPrefs=(p.statPrefs&&typeof p.statPrefs==='object')?p.statPrefs:null;
   }
   function savePrefs(){
@@ -61,7 +73,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
       localStorage.setItem(C3_PREFS_KEY,JSON.stringify({
         markerColor:state.markerColor,lineColor:state.lineColor,
         durationSeconds:state.durationSeconds,cameraSpeed:state.cameraSpeed,
-        lineWidth:state.lineWidth,aspectIndex:state.aspectIndex,statPrefs
+        lineWidth:state.lineWidth,aspectIndex:state.aspectIndex,routeType:state.routeType,statPrefs
       }));
     }catch(_){}
   }
@@ -69,6 +81,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     document.querySelectorAll('[data-c3-marker-color]').forEach(b=>b.classList.toggle('active',b.dataset.c3MarkerColor===state.markerColor));
     document.querySelectorAll('[data-c3-line-color]').forEach(b=>b.classList.toggle('active',b.dataset.c3LineColor===state.lineColor));
     document.querySelectorAll('[data-c3-ratio]').forEach(b=>b.classList.toggle('active',Number(b.dataset.c3Ratio)===state.aspectIndex));
+    document.querySelectorAll('[data-c3-route-type]').forEach(b=>b.classList.toggle('active',b.dataset.c3RouteType===state.routeType));
     const sp=state.statPrefs;
     if(sp)document.querySelectorAll('#create3d-workspace [data-c3stat]').forEach(cb=>{if(typeof sp[cb.dataset.c3stat]==='boolean')cb.checked=sp[cb.dataset.c3stat];});
     updateAspectLabel();
@@ -89,6 +102,10 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
   // WebM stays as the fallback for browsers whose MediaRecorder cannot encode
   // H.264 — the first type the browser actually supports wins.
   const C3_VIDEO_TYPES=[
+    // High/Main profile before Baseline: noticeably cleaner on fast camera
+    // moves at the same bitrate (better motion estimation + CABAC).
+    {mime:'video/mp4;codecs=avc1.640028,mp4a.40.2',ext:'mp4'},
+    {mime:'video/mp4;codecs=avc1.4D4028,mp4a.40.2',ext:'mp4'},
     {mime:'video/mp4;codecs=avc1.42E01E,mp4a.40.2',ext:'mp4'},
     {mime:'video/mp4;codecs=avc1',ext:'mp4'},
     {mime:'video/mp4',ext:'mp4'},
@@ -562,7 +579,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     if(state.map&&state.route?.length){state.map.stop();state.map.fitBounds(boundsOf(state.route),{padding:{top:100,bottom:100,left:100,right:100},maxZoom:14,duration:700});state.map.setPitch(68);if(state.marker)state.marker.setLngLat(state.route[0]);}
     updatePlaybackUi();
   }
-  function renderStats(){const a=state.activity;if(!a)return;const est=!!a.timeEstimated;const tTxt=(est?'≈ ':'')+fmtTime(a.movingTime);const pace=(est?'≈ ':'')+fmtPace(a.movingTime,a.distanceKm);$('create3d-activity-name').textContent=a.name||'Run Activity';$('create3d-activity-meta').textContent=`${a.sportType||'Run'} · ${a.distanceKm.toFixed(2)} km · ↑ ${Math.round(a.elevationGain||0)} m`;const cards=[['Distance',a.distanceKm.toFixed(2)+' km'],['Time',tTxt],['Pace',pace],['Elevation','↑ '+Math.round(a.elevationGain||0)+' m']];
+  function renderStats(){const a=state.activity;if(!a)return;const est=!!a.timeEstimated;const tTxt=(est?'≈ ':'')+fmtTime(a.movingTime);const pace=(est?'≈ ':'')+fmtPace(a.movingTime,a.distanceKm);$('create3d-activity-name').textContent=a.name||'Run Activity';$('create3d-activity-meta').textContent=`${state.routeType||a.sportType||'Run'} · ${a.distanceKm.toFixed(2)} km · ↑ ${Math.round(a.elevationGain||0)} m`;const cards=[['Distance',a.distanceKm.toFixed(2)+' km'],['Time',tTxt],['Pace',pace],['Elevation','↑ '+Math.round(a.elevationGain||0)+' m']];
       if(Number.isFinite(a.avgHr))cards.push(['Avg HR',a.avgHr+' bpm']);
       if(Number.isFinite(a.maxHr)&&Number.isFinite(a.avgHr)&&a.maxHr!==a.avgHr)cards.push(['Max HR',a.maxHr+' bpm']);
       $('create3d-stat-summary').innerHTML=cards.map(x=>`<div class="c3-stat"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('');}
@@ -579,7 +596,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     const dist=Number(a.distanceKm||0);
     return {
       name:a.name||'Run Activity',
-      sport:String(a.sportType||'Run').toUpperCase(),
+      sport:String(state.routeType||a.sportType||'Run').toUpperCase(),
       distance:dist.toFixed(2),
       distanceUnit:'KM',
       showDistance:statChecked('distance'),
@@ -1049,7 +1066,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
         const est=estimateMovingTime(pts,assumedPaceSecPerKm());
         if(est>0){timing.movingTime=est;timing.elapsedTime=est;timing.avgPaceSecPerKm=est/dist;timeEstimated=true;}
       }
-      state.activity={id:'gpx-'+Date.now(),name:String(fileName||'GPX activity').replace(/\.gpx$/i,''),sportType:'Trail',distanceKm:dist,movingTime:timing.movingTime,elapsedTime:timing.elapsedTime,elevationGain:elevGain,startDate:times.length?new Date(Math.min(...times)).toISOString():'',startDateLocal:times.length?new Date(Math.min(...times)).toISOString():'',summaryPolyline:'',source:'gpx'};
+      state.activity={id:'gpx-'+Date.now(),name:String(fileName||'GPX activity').replace(/\.gpx$/i,''),sportType:state.routeType||'Trail',distanceKm:dist,movingTime:timing.movingTime,elapsedTime:timing.elapsedTime,elevationGain:elevGain,startDate:times.length?new Date(Math.min(...times)).toISOString():'',startDateLocal:times.length?new Date(Math.min(...times)).toISOString():'',summaryPolyline:'',source:'gpx'};
       state.activity.timeEstimated=timeEstimated;
       state.activity.hasTimeData=!!timing.hasTime;
       state.activity.pointCount=pts.length;
@@ -1082,6 +1099,40 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     }
   }
   function gateHtml(text){const g=$('create3d-gate');if(g)g.innerHTML=text;}
+  // After a successful export the download stays LOCKED until the runner shares
+  // the route (verified server-side). This is the growth loop, kept explicit.
+  function renderVideoGate(){
+    const v=state.lastVideo;if(!v)return;
+    const size=v.sizeMB!=null?v.sizeMB:(v.blob?(v.blob.size/1048576).toFixed(2):'?');
+    const secs=v.seconds!=null?v.seconds:'';
+    if(state.flyoverShared){
+      gateHtml(`✓ Video ready (${size} MB · ${secs}s) · <a class="c3-download-link" href="${v.url}" download="${v.name}">⬇ Download ${v.name}</a><br><button type="button" class="btn btn-ghost btn-sm" id="c3-share-video" style="margin-top:8px">📤 Share video</button>`);
+      $('c3-share-video')?.addEventListener('click',shareLastVideo);
+    }else{
+      gateHtml(`✓ Video ready (${size} MB · ${secs}s) · 🔒 <b>Share this route to unlock the download.</b><br><button type="button" class="btn btn-primary btn-sm" id="c3-unlock-video" style="margin-top:8px">🔓 Share &amp; unlock download</button>`);
+      $('c3-unlock-video')?.addEventListener('click',openFlyoverShareGate);
+    }
+  }
+  function openFlyoverShareGate(){
+    try{
+      if(typeof ShareGate==='undefined')throw new Error('share gate not loaded');
+      ShareGate.mode='flyover';
+      ShareGate.activityId=String(state.activity&&state.activity.id||'');
+      ShareGate.routeId='';ShareGate.triggerBtn=null;ShareGate.selectedPlatform=null;
+      const ov=document.getElementById('share-gate-overlay');
+      if(!ov)throw new Error('share gate markup missing');
+      ov.classList.add('show');
+      const ss=document.getElementById('sg-share-section');if(ss)ss.style.display='none';
+      const vi=document.getElementById('sg-verify-input');if(vi)vi.value='';
+      const ve=document.getElementById('sg-verify-error');if(ve)ve.textContent='';
+      document.querySelectorAll('.sg-share-btn').forEach(b=>b.classList.remove('sg-done'));
+      const pb=document.getElementById('sg-share-reward-btn');if(pb)pb.click();
+    }catch(e){
+      // No share gate available (e.g. running standalone) — do not lock the file.
+      console.warn('[create3d] share gate unavailable:',e&&e.message);
+      state.flyoverShared=true;renderVideoGate();
+    }
+  }
   // Share the freshly recorded clip with the OS share sheet (Web Share API).
   // Falls back to sharing the blob URL, then to a plain download.
   async function shareLastVideo(){
@@ -1107,6 +1158,22 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     if(!enabled){$('create3d-gate').textContent='Video export is disabled in configuration.';return;}
     if(state.recording)return;
     const btn=$('create3d-generate-btn');if(btn)btn.disabled=true;
+    // Points are real value: never spend them on a single click. Show the price
+    // and the balance, and require an explicit confirmation.
+    if(cost>0&&!state.generateConfirmed){
+      const bal=Number(window.Rewards&&window.Rewards.wallet?window.Rewards.wallet.points:NaN);
+      if(Number.isFinite(bal)&&bal<cost){
+        gateHtml(`You need <b>${cost} points</b> to generate this video. You have <b>${bal}</b>.`);
+        if(btn)btn.disabled=false;
+        return;
+      }
+      gateHtml(`Generating this video costs <b>${cost} points</b>${Number.isFinite(bal)?` · balance: ${bal}`:''}.<br><button type="button" class="btn btn-primary btn-sm" id="c3-confirm-generate">✅ Confirm &amp; generate</button> <button type="button" class="btn btn-ghost btn-sm" id="c3-cancel-generate">Cancel</button>`);
+      $('c3-confirm-generate')?.addEventListener('click',()=>{state.generateConfirmed=true;generate();});
+      $('c3-cancel-generate')?.addEventListener('click',()=>{state.generateConfirmed=false;$('create3d-gate').textContent='Cancelled — no points were spent.';});
+      if(btn)btn.disabled=false;
+      return;
+    }
+    state.generateConfirmed=false;
     $('create3d-gate').textContent=cost===0?'Preparing test video export…':'Preparing video export…';
     let serverReady=false,serverMsg='';
     try{
@@ -1131,8 +1198,9 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
       const out=await recordPreviewToVideo();
       if(!out?.ok){$('create3d-gate').textContent=out?.error||'Could not record the test video.';}
       else{
-        gateHtml(`✓ Test video saved · <a class="c3-download-link" href="${out.url}" download="${out.name}">⬇ Download ${out.name}</a> (${out.sizeMB} MB · ${out.seconds}s · 0 points charged)<br><button type="button" class="btn btn-ghost btn-sm" id="c3-share-video" style="margin-top:8px">📤 Share video</button>`);
-        $('c3-share-video')?.addEventListener('click',shareLastVideo);
+        if(state.lastVideo){state.lastVideo.sizeMB=out.sizeMB;state.lastVideo.seconds=out.seconds;}
+        state.flyoverShared=false;   // download stays locked until a verified share
+        renderVideoGate();
       }
     }catch(e){$('create3d-gate').textContent='Test video recording failed: '+(e.message||'unexpected error');}
     finally{state.recording=false;if(btn)btn.disabled=false;}
@@ -1274,7 +1342,11 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     // The elevation panel covers the bottom 20% of the frame, so the ridge and
     // the read-outs stay legible on a phone-sized export.
     const ph=Math.round(H*0.20);
-    const panelTop=H-ph;
+    // Safe zone: Instagram/TikTok/Reels draw captions, buttons and the comment
+    // bar over the bottom of a video, so the whole HUD is lifted above it
+    // (config.js → threeD.hudBottomOffset, fraction of the frame height).
+    const bottomPad=Math.round(H*Math.max(0,Math.min(0.22,Number(C().hudBottomOffset??0.10)||0)));
+    const panelTop=Math.max(0,H-bottomPad-ph);
     const sy=Math.max(0,Math.round(panelTop-ph*0.34));
     const scrim=ctx.createLinearGradient(0,sy,0,H);
     scrim.addColorStop(0,'rgba(4,10,20,0)');
@@ -1285,7 +1357,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     ctx.beginPath();ctx.moveTo(0,panelTop+.5*s);ctx.lineTo(W,panelTop+.5*s);ctx.stroke();
     const m=state.elevModel;
     if(m&&m.length>1&&total>0){
-      const topY=panelTop+Math.round(46*s), baseY=H-Math.round(60*s);
+      const topY=panelTop+Math.round(46*s), baseY=H-bottomPad-Math.round(60*s);
       const areaH=Math.max(24*s,baseY-topY);
       let mn=Infinity,mx=-Infinity;
       for(const e of m){if(Number.isFinite(e.z)){mn=Math.min(mn,e.z);mx=Math.max(mx,e.z);}}
@@ -1350,8 +1422,8 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
       c3Text(ctx,'ELEVATION PROFILE',padX,panelTop+27*s,12*s,'rgba(226,232,240,.62)',900,'left',2.4*s);
       c3Text(ctx,Math.round(mx)+' m',W-padX,panelTop+27*s,12*s,'rgba(226,232,240,.45)',900,'right',1.4*s);
       c3Text(ctx,Math.round(mn)+' m',W-padX,baseY+19*s,12*s,'rgba(226,232,240,.45)',900,'right',1.4*s);
-      if(Number.isFinite(zNow))c3Text(ctx,'↑ '+Math.round(zNow)+' m',padX,H-26*s,24*s,'#FFFFFF',950,'left',0);
-      c3Text(ctx,(d/1000).toFixed(2)+' / '+(total/1000).toFixed(2)+' KM',W-padX,H-26*s,17*s,'rgba(226,232,240,.85)',900,'right',1.2*s);
+      if(Number.isFinite(zNow))c3Text(ctx,'↑ '+Math.round(zNow)+' m',padX,H-bottomPad-26*s,24*s,'#FFFFFF',950,'left',0);
+      c3Text(ctx,(d/1000).toFixed(2)+' / '+(total/1000).toFixed(2)+' KM',W-padX,H-bottomPad-26*s,17*s,'rgba(226,232,240,.85)',900,'right',1.2*s);
     }
     // ── live pace: right edge, vertically centred between the top margin and
     // the elevation panel. Always rendered (shows "—" if there is no data yet).
@@ -1444,8 +1516,18 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     await new Promise(r=>requestAnimationFrame(r));
     await new Promise(r=>requestAnimationFrame(r));
     await new Promise(r=>setTimeout(r,150));
-    outCanvas.width=Math.max(2,mapCanvas.width||Math.round(mapCanvas.clientWidth||720));
-    outCanvas.height=Math.max(2,mapCanvas.height||Math.round(mapCanvas.clientHeight||1280));
+    // Export resolution: aim for the real 1080×1920 target instead of whatever
+    // the on-screen canvas happens to be. Never upscale more than 2× (that only
+    // produces mush) and never exceed the source when the source is bigger.
+    const ar0=currentAspect();
+    const targetW=ar0.w>ar0.h?1920:1080;   // landscape 1920 wide, square/portrait 1080
+    const srcW=Math.max(2,mapCanvas.width||Math.round(mapCanvas.clientWidth||720));
+    const outW=srcW>=targetW?targetW:Math.min(targetW,Math.round(srcW*2));
+    outCanvas.width=outW;
+    outCanvas.height=Math.round(outW*ar0.h/ar0.w);
+    // High-quality scaling keeps the upscale from looking blocky.
+    outCtx.imageSmoothingEnabled=true;
+    try{outCtx.imageSmoothingQuality='high';}catch(_){}
     // The composite canvas is kept off-screen but ATTACHED to the document: a
     // fully detached canvas is unreliable as a captureStream source in Chromium
     // (it can stop emitting frames, which is what made the export go black).
@@ -1456,11 +1538,22 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     // 300×150 canvas keeps that resolution and the export comes out broken.
     let stream;
     try{stream=outCanvas.captureStream(fps);}catch(e){return {ok:false,error:'Frame capture failed: '+(e.message||e)};}
+    // Bitrate decides "jernih vs pecah": the MediaRecorder default (~2.5 Mbps)
+    // is far too low, and fast camera motion needs even more. Budget ≈ 0.25 bit
+    // per pixel per frame, overridable via threeD.videoBitrate.
+    const cfgBitrate=Number(C().videoBitrate);
+    const autoBitrate=Math.round(outCanvas.width*outCanvas.height*fps*0.25);
+    const bitrate=cfgBitrate>0
+      ? Math.max(2000000,Math.min(60000000,cfgBitrate))
+      : Math.max(6000000,Math.min(40000000,autoBitrate));
     let rec;
-    try{rec=new MediaRecorder(stream,{mimeType:mime});}
+    try{rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:bitrate});}
     catch(_){
-      try{rec=new MediaRecorder(stream);}
-      catch(e){return {ok:false,error:'MediaRecorder could not start: '+(e.message||e)};}
+      try{rec=new MediaRecorder(stream,{videoBitsPerSecond:bitrate});}
+      catch(__){
+        try{rec=new MediaRecorder(stream);}
+        catch(e){return {ok:false,error:'MediaRecorder could not start: '+(e.message||e)};}
+      }
     }
     const chunks=[];
     rec.addEventListener('dataavailable',e=>{if(e.data&&e.data.size)chunks.push(e.data);});
@@ -1481,23 +1574,51 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
       await new Promise(r=>requestAnimationFrame(r));
     }catch(_){srcVideo=null;}
     buildHudModels();
-    // One composite pass per frame: map pixels → HUD → finish card (outro only).
-    // Cancelled in the finally block.
-    const paint=()=>{
-      paintRaf=requestAnimationFrame(paint);
+    // ─── Frame pacing ──────────────────────────────────────────────────────
+    // Painting on every requestAnimationFrame (60 Hz) while the camera only
+    // produces ~30 frames/s meant some frames were drawn twice and some were
+    // skipped. That irregular cadence is exactly what shows up as blips /
+    // stutter on fast camera moves. Now we paint once per SOURCE frame, and the
+    // source never switches mid-recording (switching flashes a different image).
+    let haveFrame=false,frameReady=!srcVideo,paintStop=false,useFrameMark=false;
+    if(srcVideo&&typeof srcVideo.requestVideoFrameCallback==='function'){
+      useFrameMark=true;
+      const mark=()=>{frameReady=true;if(!paintStop){try{srcVideo.requestVideoFrameCallback(mark);}catch(_){useFrameMark=false;}}};
+      try{srcVideo.requestVideoFrameCallback(mark);}catch(_){useFrameMark=false;}
+    }
+    const paintFrame=(useLiveCanvas)=>{
       try{
         const w=outCanvas.width,h=outCanvas.height;
-        // Opaque base: even if the frame copy fails the export is never a black
-        // (transparent) video.
-        outCtx.fillStyle='#06101d';outCtx.fillRect(0,0,w,h);
-        if(srcVideo&&srcVideo.readyState>=2&&srcVideo.videoWidth>0)outCtx.drawImage(srcVideo,0,0,w,h);
-        else outCtx.drawImage(mapCanvas,0,0,w,h);
+        let drew=false;
+        if(srcVideo&&!useLiveCanvas){
+          if(srcVideo.readyState>=2&&srcVideo.videoWidth>0){outCtx.drawImage(srcVideo,0,0,w,h);drew=true;}
+        }else{
+          outCtx.drawImage(mapCanvas,0,0,w,h);drew=true;
+        }
+        if(!drew){
+          // Nothing new from the camera: keep the previous frame on screen.
+          // Never repaint and never switch source — both flash.
+          if(!haveFrame){outCtx.fillStyle='#06101d';outCtx.fillRect(0,0,w,h);}
+          else return;
+        }
+        haveFrame=true;
         const prog=state.hudProgress!=null?state.hudProgress:(state.previewProgress||0);
         drawHud(outCtx,w,h,prog,cardAt?0.42:1,!cardAt);
         if(cardAt)drawFinishCard(outCtx,w,h,(performance.now()-cardAt)/650);
       }catch(_){}
     };
-    paintRaf=requestAnimationFrame(paint);
+    const tick=()=>{
+      if(paintStop)return;
+      paintRaf=requestAnimationFrame(tick);
+      // Outro: the camera is static, so keep painting (the card animates) using
+      // the live canvas — valid at any time thanks to preserveDrawingBuffer.
+      // useFrameMark=false (no requestVideoFrameCallback) → paint every rAF, the
+      // old behaviour, which is still correct — just less evenly paced.
+      if(!srcVideo||!useFrameMark||frameReady){frameReady=false;paintFrame(false);}
+      else if(cardAt){paintFrame(true);}
+    };
+    paintFrame(false);               // paint the first frame right away
+    tick();
     try{
       rec.start(1000);
       stopPreview();
@@ -1522,6 +1643,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
       return {ok:true,url,name:state.lastVideo.name,sizeMB:(blob.size/1048576).toFixed(2),seconds:Math.round(state.durationSeconds+(holdMs/1000))};
     }catch(e){return {ok:false,error:'Recording failed: '+(e.message||e)};}
     finally{
+      paintStop=true;
       if(paintRaf)cancelAnimationFrame(paintRaf);paintRaf=0;cardAt=0;
       try{if(srcVideo){srcVideo.pause();srcVideo.srcObject=null;}}catch(_){}
       try{if(srcStream&&srcStream.getTracks)srcStream.getTracks().forEach(t=>{try{t.stop();}catch(_){}});}catch(_){}
@@ -1563,8 +1685,10 @@ import { parseGpxPoints } from './gpx-parser.js?v=22';
     // Preferences must never be able to break the page: if anything goes wrong
     // here every button below would stay unwired.
     try{loadPrefs();applyPrefsToUi();}catch(e){console.warn('[create3d] prefs unavailable:',e?.message);}
-    const bind=(id,fn)=>$(id)?.addEventListener('click',fn);bind('create3d-connect-btn',connect);bind('create3d-load-btn',loadPublicActivity);bind('create3d-preview-btn',playPreview);bind('create3d-preview-playback',playPreview);bind('create3d-preview-pause',()=>state.playing?pausePreview():playPreview());bind('create3d-generate-btn',generate);bind('create3d-reset',resetView);bind('create3d-finish-close',hideFinish);bind('create3d-my-btn',loadMyActivities);$('create3d-gpx-file')?.addEventListener('change',e=>handleGpxFiles(e.target.files));const dz=$('create3d-dropzone');if(dz){['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('dragover');}));['dragleave','dragend'].forEach(ev=>dz.addEventListener(ev,()=>dz.classList.remove('dragover')));dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleGpxFiles(e.dataTransfer?.files);});}document.querySelectorAll('[data-c3-map-mode]').forEach(b=>b.addEventListener('click',()=>setMapMode(b.dataset.c3MapMode)));document.querySelectorAll('[data-c3-marker-color]').forEach(b=>b.addEventListener('click',()=>setMarkerColor(b.dataset.c3MarkerColor)));document.querySelectorAll('[data-c3-line-color]').forEach(b=>b.addEventListener('click',()=>setLineColor(b.dataset.c3LineColor)));document.querySelectorAll('[data-c3-ratio]').forEach(b=>b.addEventListener('click',()=>setAspect(b.dataset.c3Ratio)));$('create3d-preview-scrubber')?.addEventListener('input',e=>setPreviewProgressFromSlider(e.target.value));$('c3-duration')?.addEventListener('input',e=>{state.durationSeconds=Math.max(8,Math.min(60,Number(e.target.value)||20));updatePlaybackUi();savePrefs();});$('c3-speed')?.addEventListener('input',e=>{state.cameraSpeed=Math.max(0.5,Math.min(2,Number(e.target.value)||1));if(state.cameraController)state.cameraController.setSpeed?.(state.cameraSpeed);updatePlaybackUi();savePrefs();});$('c3-line-width')?.addEventListener('input',e=>{state.lineWidth=Math.max(2,Math.min(10,Number(e.target.value)||5));updateLineWidth();savePrefs();});const retryBtn=$('c3-error-retry');if(retryBtn)retryBtn.addEventListener('click',()=>{if(window.__C3_RETRY_CALLBACK__)window.__C3_RETRY_CALLBACK__();});const closeBtn=$('c3-error-close');if(closeBtn)closeBtn.addEventListener('click',()=>{const dialog=$('c3-error-dialog');if(dialog)dialog.classList.add('hidden');});updatePlaybackUi();['c3-time','c3-pace','c3-date'].forEach(id=>$(id)?.addEventListener('input',()=>{if(state.activity&&!state.playing)hideFinish();}));document.querySelectorAll('[data-c3stat]').forEach(i=>i.addEventListener('change',()=>{if(state.activity&&!state.playing)hideFinish();savePrefs();}));const previewBtn=$('create3d-preview-btn');if(previewBtn)previewBtn.disabled=true;checkConnection();hideDomMarker();}
-  window.RunnersHubCreate3D={mount,loadActivity:loadPublicActivity,playPreview,pausePreview,resetView,refreshGate:()=>{const g=$('create3d-gate');if(g)g.textContent='3D Flyover is ready for test export.'}};
+    const bind=(id,fn)=>$(id)?.addEventListener('click',fn);bind('create3d-connect-btn',connect);bind('create3d-load-btn',loadPublicActivity);bind('create3d-preview-btn',playPreview);bind('create3d-preview-playback',playPreview);bind('create3d-preview-pause',()=>state.playing?pausePreview():playPreview());bind('create3d-generate-btn',generate);bind('create3d-reset',resetView);bind('create3d-finish-close',hideFinish);bind('create3d-my-btn',loadMyActivities);$('create3d-gpx-file')?.addEventListener('change',e=>handleGpxFiles(e.target.files));const dz=$('create3d-dropzone');if(dz){['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('dragover');}));['dragleave','dragend'].forEach(ev=>dz.addEventListener(ev,()=>dz.classList.remove('dragover')));dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');handleGpxFiles(e.dataTransfer?.files);});}document.querySelectorAll('[data-c3-map-mode]').forEach(b=>b.addEventListener('click',()=>setMapMode(b.dataset.c3MapMode)));document.querySelectorAll('[data-c3-marker-color]').forEach(b=>b.addEventListener('click',()=>setMarkerColor(b.dataset.c3MarkerColor)));document.querySelectorAll('[data-c3-line-color]').forEach(b=>b.addEventListener('click',()=>setLineColor(b.dataset.c3LineColor)));document.querySelectorAll('[data-c3-ratio]').forEach(b=>b.addEventListener('click',()=>setAspect(b.dataset.c3Ratio)));document.querySelectorAll('[data-c3-route-type]').forEach(b=>b.addEventListener('click',()=>setRouteType(b.dataset.c3RouteType)));$('create3d-preview-scrubber')?.addEventListener('input',e=>setPreviewProgressFromSlider(e.target.value));$('c3-duration')?.addEventListener('input',e=>{state.durationSeconds=Math.max(8,Math.min(60,Number(e.target.value)||20));updatePlaybackUi();savePrefs();});$('c3-speed')?.addEventListener('input',e=>{state.cameraSpeed=Math.max(0.5,Math.min(2,Number(e.target.value)||1));if(state.cameraController)state.cameraController.setSpeed?.(state.cameraSpeed);updatePlaybackUi();savePrefs();});$('c3-line-width')?.addEventListener('input',e=>{state.lineWidth=Math.max(2,Math.min(10,Number(e.target.value)||5));updateLineWidth();savePrefs();});const retryBtn=$('c3-error-retry');if(retryBtn)retryBtn.addEventListener('click',()=>{if(window.__C3_RETRY_CALLBACK__)window.__C3_RETRY_CALLBACK__();});const closeBtn=$('c3-error-close');if(closeBtn)closeBtn.addEventListener('click',()=>{const dialog=$('c3-error-dialog');if(dialog)dialog.classList.add('hidden');});updatePlaybackUi();['c3-time','c3-pace','c3-date'].forEach(id=>$(id)?.addEventListener('input',()=>{if(state.activity&&!state.playing)hideFinish();}));document.querySelectorAll('[data-c3stat]').forEach(i=>i.addEventListener('change',()=>{if(state.activity&&!state.playing)hideFinish();savePrefs();}));const previewBtn=$('create3d-preview-btn');if(previewBtn)previewBtn.disabled=true;checkConnection();hideDomMarker();}
+  window.RunnersHubCreate3D={mount,loadActivity:loadPublicActivity,playPreview,pausePreview,resetView,
+    refreshGate:renderVideoGate,
+    markFlyoverShared:()=>{state.flyoverShared=true;renderVideoGate();}};
   window.addEventListener('hashchange',()=>{
     const hash=(window.location.hash||'').replace('#','');
     if(!hash.startsWith('create3d')&&state.playing) pausePreview();

@@ -1,5 +1,5 @@
 /* RunnersHub Progressive Web App (PWA) Service Worker */
-const CACHE_NAME = 'runnershub-v23';
+const CACHE_NAME = 'runnershub-v26';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',

@@ -987,7 +987,7 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
 #nav-rewards{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(245,158,11,.14),rgba(56,189,248,.10));border:1px solid rgba(245,158,11,.28);color:#fbbf24;font-size:12px;font-weight:850;cursor:pointer;white-space:nowrap}#nav-rewards:hover{border-color:rgba(245,158,11,.55);transform:translateY(-1px)}.reward-pill-num{font-variant-numeric:tabular-nums;color:#fff}.reward-panel{max-width:760px;margin:0 auto;padding:42px 18px 70px}.reward-hero{padding:30px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(145deg,rgba(56,189,248,.08),rgba(16,185,129,.06));box-shadow:var(--shadow)}.reward-title{font-size:30px;line-height:1.1;margin:0 0 10px;font-weight:950;letter-spacing:-.7px}.reward-sub{color:var(--text-sec);line-height:1.6;max-width:620px}.reward-balance{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:22px;padding:18px 20px;border-radius:16px;background:var(--bg-800);border:1px solid var(--border)}.reward-balance strong{font-size:28px;color:#fbbf24;font-variant-numeric:tabular-nums}.reward-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.reward-card{padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--bg-800)}.reward-card h3{margin:0 0 6px;font-size:14px}.reward-card p{margin:0;color:var(--text-muted);font-size:12px;line-height:1.5}.reward-note{margin-top:14px;font-size:11px;color:var(--text-dim);line-height:1.55}.reward-ad-disabled{opacity:.72}.sg-reward-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.sg-reward-choice{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--bg-800);text-align:left;cursor:pointer;transition:var(--transition)}.sg-reward-choice:hover{border-color:var(--border-l);transform:translateY(-1px)}.sg-reward-choice strong{display:block;color:var(--text-pri);font-size:13px}.sg-reward-choice small{display:block;color:var(--text-muted);margin-top:3px;font-size:11px;line-height:1.4}.sg-points-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(245,158,11,.12);color:#fbbf24;font-size:10px;font-weight:850}#site-footer .fc-a{color:var(--sky);font-weight:950}#site-footer .fc-runs{color:var(--emerald);font-weight:950;letter-spacing:.08em}@media(max-width:700px){.reward-grid{grid-template-columns:1fr}.sg-reward-grid{grid-template-columns:1fr}.reward-title{font-size:25px}}
 [data-release-rewards-disabled="true"]{display:none!important}</style>
   <script src="/config.js"></script>
-  <link rel="stylesheet" href="./3dflyover/3dflyover.css?v=23">
+  <link rel="stylesheet" href="./3dflyover/3dflyover.css?v=26">
 </head>
 <body>
 
@@ -1327,7 +1327,7 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
             <div style="display:flex;justify-content:flex-end;margin-top:3px">
               <span id="uf-details-count" style="font-size:10px;color:var(--text-dim)">0 / 2000</span>
             </div>
-            <div class="upload-reward-hint" id="upload-reward-hint">🪙 <b>+30 points</b> when your route is successfully published · max 2 upload rewards per day</div>
+            <div class="upload-reward-hint" id="upload-reward-hint">🪙 <b id="upload-reward-points">+70 points</b> when your route is successfully published · max <span id="upload-reward-limit">2</span> upload rewards per day</div>
           </div>
 
           <div id="upload-status"></div>
@@ -1434,6 +1434,7 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
             <div class="create3d-panel-top"><div><span class="create3d-kicker">STEP 3</span><h2>Preview &amp; customize</h2></div><button id="create3d-reset" class="btn btn-ghost btn-sm" type="button">Reset view</button></div>
             <div class="create3d-stat-summary" id="create3d-stat-summary"></div>
             <div class="create3d-section"><h3>Show at finish</h3><div class="create3d-checks"><label><input type="checkbox" data-c3stat="distance" checked/> Distance</label><label><input type="checkbox" data-c3stat="time" checked/> Moving Time</label><label><input type="checkbox" data-c3stat="pace" checked/> Pace</label><label><input type="checkbox" data-c3stat="elevation" checked/> Elevation Gain</label><label><input type="checkbox" data-c3stat="difficulty" checked/> Difficulty</label><label><input type="checkbox" data-c3stat="date" checked/> Date</label></div></div>
+            <div class="create3d-section"><h3>Route type</h3><div class="create3d-line-colors" role="group" aria-label="Route type"><button type="button" class="c3-color-option active" data-c3-route-type="Trail">🏔️ Trail</button><button type="button" class="c3-color-option" data-c3-route-type="Road">🛣️ Road</button></div></div>
             <div class="create3d-section"><h3>Running marker</h3><div class="create3d-line-colors" role="group" aria-label="Running marker color">
               <button type="button" class="c3-color-option active" data-c3-marker-color="#FC5200" title="Orange"><i style="background:#FC5200"></i>Orange</button>
               <button type="button" class="c3-color-option" data-c3-marker-color="#38BDF8" title="Blue"><i style="background:#38BDF8"></i>Blue</button>
@@ -3856,8 +3857,50 @@ function isPlausiblePostUrl(platform,url){const m=SHARE_PLATFORM_META[platform];
 function openShareGate(id,btn){ShareGate.mode='route';ShareGate.routeId=id;ShareGate.triggerBtn=btn;ShareGate.selectedPlatform=null;document.getElementById('share-gate-overlay').classList.add('show');document.getElementById('sg-share-section').style.display='none';document.getElementById('sg-verify-input').value='';document.getElementById('sg-verify-error').textContent='';document.querySelectorAll('.sg-share-btn').forEach(b=>b.classList.remove('sg-done'));const pb=document.getElementById('sg-points-reward-btn');const pc=document.getElementById('sg-points-reward-copy');const pe=!!RELEASE_CONFIG.points?.enabled;const bal=Number(Rewards.wallet?.points||0);if(pb){pb.style.display=pe?'':'none';pb.disabled=!pe||bal<Number(RELEASE_CONFIG.points?.costs?.download||15);}if(pc)pc.textContent=pe?`Use ${Number(RELEASE_CONFIG.points?.costs?.download||15)} points now. Balance: ${bal}.`:'Points are disabled.';setRewardModalStatus('<span class="sg-dot"></span> Share the route to unlock GPX');const dl=document.getElementById('sg-download-btn');dl.disabled=true;dl.innerHTML='🔒 Share &amp; verify to unlock';}
 function closeShareGate(){document.getElementById('share-gate-overlay').classList.remove('show');}
 function handleShareRewardClick(){document.getElementById('sg-share-section').style.display='block';setRewardModalStatus('<span class="sg-dot"></span> Share the route, then verify your public post link');}
-function handleShareClick(platform){const id=ShareGate.routeId,url=encodeURIComponent(shareGateUrlFor(id)),text=encodeURIComponent(shareGateText(id));let shareUrl=null;switch(platform){case'x':shareUrl=`https://twitter.com/intent/tweet?text=${text}&url=${url}`;break;case'facebook':shareUrl=`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`;break;case'threads':shareUrl=`https://www.threads.net/intent/post?text=${text}%20${url}`;break;case'whatsapp':shareUrl=`https://wa.me/?text=${text}%20${url}`;break;case'telegram':shareUrl=`https://t.me/share/url?url=${url}&text=${text}`;break;case'linkedin':shareUrl=`https://www.linkedin.com/sharing/share-offsite/?url=${url}`;break;case'reddit':shareUrl=`https://www.reddit.com/submit?url=${url}&title=${text}`;break;case'instagram':const cap=decodeURIComponent(text)+' '+decodeURIComponent(url);if(navigator.clipboard)navigator.clipboard.writeText(cap).catch(()=>{});toast('Caption copied — paste it into Instagram, then return here.','inf');shareUrl='https://www.instagram.com/';break;}if(shareUrl)window.open(shareUrl,'_blank','noopener,noreferrer,width=600,height=620');document.querySelectorAll('.sg-share-btn').forEach(b=>b.classList.remove('sg-done'));const b=document.querySelector(`.sg-share-btn[data-platform="${platform}"]`);if(b)b.classList.add('sg-done');ShareGate.selectedPlatform=platform;document.getElementById('sg-verify-platform-name').textContent=SHARE_PLATFORM_META[platform].label+' post';document.getElementById('sg-verify-input').value='';document.getElementById('sg-verify-error').textContent='';document.getElementById('sg-verify-section').classList.add('show');document.getElementById('sg-verify-input').focus();}
-async function handleVerifyClick(){const p=ShareGate.selectedPlatform,e=document.getElementById('sg-verify-error'),i=document.getElementById('sg-verify-input');if(!p){e.textContent='Pick a platform above first.';return;}const v=i.value.trim();if(!v){e.textContent='Paste your post link first.';return;}if(!isPlausiblePostUrl(p,v)){e.textContent=`That doesn't look like a valid ${SHARE_PLATFORM_META[p].label} post link.`;return;}try{e.textContent='Verifying…';const result=ShareGate.mode==='flyover' ? await callApi('claimFlyoverShare',{runnerId:getRunnerId(),activityId:ShareGate.activityId,platform:p,postUrl:v}) : await callApi('claimShareReward',{runnerId:getRunnerId(),routeId:ShareGate.routeId,platform:p,postUrl:v});if(ShareGate.mode==='flyover'){e.textContent='';setRewardModalStatus('<span class="sg-dot"></span> Share verified — flyover export unlocked! 🎉',true);closeShareGate();window.RunnersHubCreate3D?.refreshGate?.();}else{Rewards.wallet=result?.wallet||result;updateRewardUi(Rewards.wallet);e.textContent='';
+// Copy with a fallback: navigator.clipboard is undefined outside secure
+// contexts, which silently broke the Instagram flow.
+function copyShareText(txt){
+  try{
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(()=>{}, ()=>legacyCopy(txt));
+      return true;
+    }
+  }catch(_){}
+  return legacyCopy(txt);
+}
+function legacyCopy(txt){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=txt;ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:0;left:-9999px;opacity:0';
+    document.body.appendChild(ta);ta.select();
+    const ok=document.execCommand('copy');
+    ta.remove();
+    return ok;
+  }catch(_){ return false; }
+}
+// ALWAYS a new tab. Navigating the current tab would close RunnersHub and throw
+// away the video that was just generated (it only lives in memory), so there is
+// no location.href fallback here — if the browser blocks it we tell the user.
+function openShareUrl(url){
+  try{
+    const w=window.open(url,'_blank','noopener');
+    if(w){ try{ w.opener=null; }catch(_){} return 'tab'; }
+  }catch(_){}
+  try{
+    // Some mobile browsers block window.open but still honour a real link click.
+    const a=document.createElement('a');
+    a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+    a.style.cssText='display:none';
+    document.body.appendChild(a);a.click();a.remove();
+    return 'tab';
+  }catch(_){}
+  return 'blocked';
+}
+function handleShareClick(platform){const id=ShareGate.routeId,url=encodeURIComponent(shareGateUrlFor(id)),text=encodeURIComponent(shareGateText(id));let shareUrl=null;switch(platform){case'x':shareUrl=`https://twitter.com/intent/tweet?text=${text}&url=${url}`;break;case'facebook':shareUrl=`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`;break;case'threads':shareUrl=`https://www.threads.net/intent/post?text=${text}%20${url}`;break;case'whatsapp':shareUrl=`https://api.whatsapp.com/send?text=${text}%20${url}`;break;case'telegram':shareUrl=`https://t.me/share/url?url=${url}&text=${text}`;break;case'linkedin':shareUrl=`https://www.linkedin.com/sharing/share-offsite/?url=${url}`;break;case'reddit':shareUrl=`https://www.reddit.com/submit?url=${url}&title=${text}`;break;case'instagram':const cap=decodeURIComponent(text)+' '+decodeURIComponent(url);const copied=copyShareText(cap);toast(copied?'Caption copied — paste it into Instagram, then return here.':'Copy this caption into Instagram: '+cap,'inf');shareUrl='https://www.instagram.com/';break;}
+if(shareUrl){const how=openShareUrl(shareUrl);if(how==='blocked')toast('Your browser blocked the new tab. Allow pop-ups for this site, then tap share again (or copy this link: '+shareUrl+')','err');}
+document.querySelectorAll('.sg-share-btn').forEach(b=>b.classList.remove('sg-done'));const b=document.querySelector(`.sg-share-btn[data-platform="${platform}"]`);if(b)b.classList.add('sg-done');ShareGate.selectedPlatform=platform;document.getElementById('sg-verify-platform-name').textContent=SHARE_PLATFORM_META[platform].label+' post';document.getElementById('sg-verify-input').value='';document.getElementById('sg-verify-error').textContent='';document.getElementById('sg-verify-section').classList.add('show');document.getElementById('sg-verify-input').focus();}
+async function handleVerifyClick(){const p=ShareGate.selectedPlatform,e=document.getElementById('sg-verify-error'),i=document.getElementById('sg-verify-input');if(!p){e.textContent='Pick a platform above first.';return;}const v=i.value.trim();if(!v){e.textContent='Paste your post link first.';return;}if(!isPlausiblePostUrl(p,v)){e.textContent=`That doesn't look like a valid ${SHARE_PLATFORM_META[p].label} post link.`;return;}try{e.textContent='Verifying…';const result=ShareGate.mode==='flyover' ? await callApi('claimFlyoverShare',{runnerId:getRunnerId(),activityId:ShareGate.activityId,platform:p,postUrl:v}) : await callApi('claimShareReward',{runnerId:getRunnerId(),routeId:ShareGate.routeId,platform:p,postUrl:v});if(ShareGate.mode==='flyover'){e.textContent='';setRewardModalStatus('<span class="sg-dot"></span> Share verified — flyover export unlocked! 🎉',true);closeShareGate();window.RunnersHubCreate3D?.markFlyoverShared?.();window.RunnersHubCreate3D?.refreshGate?.();}else{Rewards.wallet=result?.wallet||result;updateRewardUi(Rewards.wallet);e.textContent='';
       const dl=document.getElementById('sg-download-btn');dl.disabled=false;
       if(RELEASE_CONFIG.points?.enabled){
         // Share first — then the GPX costs points. Share alone no longer unlocks it.
@@ -3903,6 +3946,8 @@ function renderRewardsCopy(){
   set('rw-download-note-cost', String(p.costs?.download ?? 15));
   set('rw-flyover-cost',  String(p.costs?.threeDFlyover ?? 40));
   set('rewards-page-points', String(Rewards.wallet?.points ?? 0));
+  set('upload-reward-points', '+' + (p.earn?.upload?.points ?? 70) + ' points');
+  set('upload-reward-limit', String(p.earn?.upload?.dailyLimit ?? 2));
 }
 function setupRewards(){getRunnerId();refreshRewards();refreshRewardUnlocks();renderRewardsCopy();const enabled=!!RELEASE_CONFIG.points?.enabled;const hint=document.getElementById('upload-reward-hint');if(hint)hint.style.display=enabled?'':'none';document.querySelectorAll('.points-nav,.points-mobile-nav,#nav-rewards').forEach(el=>{el.hidden=!enabled;el.style.display=enabled?'':'none';});document.querySelectorAll('[data-tab="rewards"],[data-mobile-tab="rewards"]').forEach(el=>{el.hidden=!enabled;el.style.display=enabled?'':'none';});const n=document.getElementById('nav-rewards');if(n&&!n.dataset.wired){n.dataset.wired='1';n.addEventListener('click',()=>{if(RELEASE_CONFIG.points?.enabled)switchTab('rewards');});}}
 </script>
@@ -5153,7 +5198,7 @@ window.updatePerfStats = (step, label) => {
 
 <script type="module">
   await window.__MAP_CSS_READY__;
-  import('./3dflyover/3dflyover.js?v=23');
+  import('./3dflyover/3dflyover.js?v=26');
 </script>
 <script>
 if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {

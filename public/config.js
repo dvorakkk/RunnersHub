@@ -103,6 +103,14 @@ const RUNNERSHUB_CONFIG = Object.freeze({
     height: 1920,
     fps: 30,
     durationSeconds: 20,
+    // Recording bitrate in bits/s. The browser default is too low for a
+    // 1080×1920 clip and produces blocking/blur on fast camera moves.
+    // 16 Mbps ≈ 0.25 bit/pixel/frame at 1080×1920×30. Set 0 for auto.
+    videoBitrate: 16000000,
+    // Fraction of the frame height kept clear at the bottom of the video, so the
+    // elevation HUD is never hidden behind Instagram/TikTok captions, buttons or
+    // the comment bar. 0 = no offset, 0.10 = default safe area.
+    hudBottomOffset: 0.10,
     // How long the statistics card stays on screen at the end of an export (ms).
     finishCardMs: 1500,
     // Fallback pace (sec/km) used ONLY when a GPX carries no <time> data — i.e.
