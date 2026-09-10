@@ -76,7 +76,7 @@ const RUNNERSHUB_CONFIG = Object.freeze({
   }),
 
   shareUnlock: Object.freeze({
-    enabled: true,
+    enabled: false,
     dailyLimit: 3,
     requirePostLink: true
   }),
@@ -113,6 +113,11 @@ const RUNNERSHUB_CONFIG = Object.freeze({
     // elevation HUD is never hidden behind Instagram/TikTok captions, buttons or
     // the comment bar. 0 = no offset, 0.10 = default safe area.
     hudBottomOffset: 0.10,
+    // Mobile recording profile. Phones cannot encode 1080×1920 at 40 Mbps in
+    // real time (dropped frames = choppy) and many cannot decode H.264 High 5.1
+    // (Instagram / gallery: "cannot access media", duration 0). So mobile uses a
+    // smaller frame, Baseline/Main H.264 with a low level, and ≤8 Mbps.
+    mobileProfile: Object.freeze({ width: 720, landscapeWidth: 1280, fps: 30, videoBitrate: 8000000 }),
     // How long the statistics card stays on screen at the end of an export (ms).
     finishCardMs: 1500,
     // Fallback pace (sec/km) used ONLY when a GPX carries no <time> data — i.e.

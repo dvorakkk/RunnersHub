@@ -114,11 +114,31 @@ import { parseGpxPoints } from './gpx-parser.js?v=28';
     {mime:'video/webm;codecs=vp9',ext:'webm'},
     {mime:'video/webm',ext:'webm'}
   ];
-  function c3PickVideoType(){
+  // Phones are a different world: most cannot decode H.264 High level 5.1
+  // (that is why Instagram / the gallery report "cannot access media" or a
+  // 0-second duration), so mobile starts at Baseline/Main low level instead.
+  const C3_VIDEO_TYPES_MOBILE=[
+    {mime:'video/mp4;codecs=avc1.42E01E,mp4a.40.2',ext:'mp4'},   // Baseline L3.0
+    {mime:'video/mp4;codecs=avc1.4D401F,mp4a.40.2',ext:'mp4'},   // Main L3.1
+    {mime:'video/mp4;codecs=avc1.4D4028,mp4a.40.2',ext:'mp4'},   // Main L4.0
+    {mime:'video/mp4;codecs=avc1',ext:'mp4'},
+    {mime:'video/mp4',ext:'mp4'},
+    {mime:'video/webm;codecs=vp8,opus',ext:'webm'},
+    {mime:'video/webm',ext:'webm'}
+  ];
+  function c3PickVideoType(mobile){
+    const list=mobile?C3_VIDEO_TYPES_MOBILE:C3_VIDEO_TYPES;
     if(typeof MediaRecorder!=='undefined'&&typeof MediaRecorder.isTypeSupported==='function'){
-      for(const t of C3_VIDEO_TYPES){try{if(MediaRecorder.isTypeSupported(t.mime))return t;}catch(_){}}
+      for(const t of list){try{if(MediaRecorder.isTypeSupported(t.mime))return t;}catch(_){}}
     }
-    return C3_VIDEO_TYPES[C3_VIDEO_TYPES.length-1];
+    return list[list.length-1];
+  }
+  // Coarse pointer / mobile UA → use the lightweight recording profile.
+  function c3IsMobile(){
+    try{
+      if(typeof matchMedia==='function'&&matchMedia('(pointer: coarse)').matches)return true;
+      return /Android|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(String(navigator.userAgent||''));
+    }catch(_){return false;}
   }
   function setStatus(text,type=''){const e=$('create3d-import-status');if(e){e.textContent=text;e.className='create3d-status '+type;}}
   function renderConnection(status){state.connected=!!status?.connected;const btn=$('create3d-connect-btn'),pill=$('create3d-strava-user');if(btn)btn.textContent=state.connected?'Reconnect Strava':'Connect Strava';if(pill)pill.textContent=state.connected?('✓ Connected'+(status.connection?.athlete_name?' · '+status.connection.athlete_name:'')):'Public import';const myBtn=$('create3d-my-btn');const myList=$('create3d-my-list');if(myBtn)myBtn.hidden=!state.connected;if(myList&&!state.connected)myList.innerHTML='';}
@@ -1474,9 +1494,12 @@ import { parseGpxPoints } from './gpx-parser.js?v=28';
     if(!mapCanvas||typeof mapCanvas.captureStream!=='function'||typeof MediaRecorder==='undefined'){
       return {ok:false,error:'This browser cannot capture the 3D canvas. Use Google Chrome (hardware acceleration on) to record a test video.'};
     }
-    const fps=Math.max(10,Math.min(30,Number(C().fps||30)));
-    // MP4 first (iPhone/Safari friendly), WebM only if H.264 is unavailable.
-    const vtype=c3PickVideoType();
+    // Mobile profile: smaller frame + lower bitrate keeps the encoder real-time
+    // (no dropped frames) and produces files every phone/IG can decode.
+    const mobile=c3IsMobile();
+    const mprof=C().mobileProfile||{};
+    const fps=Math.max(10,Math.min(mobile?(Number(mprof.fps)||30):30,Number(C().fps||30)));
+    const vtype=c3PickVideoType(mobile);
     const mime=vtype.mime, vext=vtype.ext;
     // Outro: the statistics card is held on screen at the end of the video.
     const holdMs=Math.max(900,Math.min(6000,Number(C().finishCardMs||1500)));
@@ -1522,7 +1545,10 @@ import { parseGpxPoints } from './gpx-parser.js?v=28';
     // the on-screen canvas happens to be. Never upscale more than 2× (that only
     // produces mush) and never exceed the source when the source is bigger.
     const ar0=currentAspect();
-    const targetW=ar0.w>ar0.h?1920:1080;   // landscape 1920 wide, square/portrait 1080
+    const landscape=ar0.w>ar0.h;
+    const targetW=mobile
+      ? (landscape?(Number(mprof.landscapeWidth)||1280):(Number(mprof.width)||720))
+      : (landscape?1920:1080);
     const srcW=Math.max(2,mapCanvas.width||Math.round(mapCanvas.clientWidth||720));
     const outW=srcW>=targetW?targetW:Math.min(targetW,Math.round(srcW*2));
     outCanvas.width=outW;
@@ -1545,9 +1571,12 @@ import { parseGpxPoints } from './gpx-parser.js?v=28';
     // per pixel per frame, overridable via threeD.videoBitrate.
     const cfgBitrate=Number(C().videoBitrate);
     const autoBitrate=Math.round(outCanvas.width*outCanvas.height*fps*0.25);
-    const bitrate=cfgBitrate>0
+    const wantBitrate=cfgBitrate>0
       ? Math.max(2000000,Math.min(120000000,cfgBitrate))
       : Math.max(8000000,Math.min(80000000,autoBitrate));
+    // Cap on phones: 40 Mbps is far beyond what a phone encoder sustains.
+    const mobileCap=Number(mprof.videoBitrate)||8000000;
+    const bitrate=mobile?Math.max(2000000,Math.min(wantBitrate,mobileCap)):wantBitrate;
     let rec;
     try{rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:bitrate});}
     catch(_){
