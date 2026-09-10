@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </linearGradient>
+    <linearGradient id="trailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fc5200"/>
+      <stop offset="100%" stop-color="#ff7a3d"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="16" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="128" fill="url(#bg)" />
+  <circle cx="256" cy="256" r="230" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="2"/>
+  
+  <!-- Mountains in background -->
+  <path d="M70 380 L180 240 L270 340 L370 210 L442 380 Z" fill="rgba(56,189,248,0.12)" />
+  <path d="M120 380 L210 270 L280 350 L340 280 L410 380 Z" fill="rgba(16,185,129,0.15)" />
+
+  <!-- Running Trail Curve -->
+  <path d="M60 410 C140 370, 180 430, 260 380 C340 330, 390 390, 452 350" fill="none" stroke="url(#trailGrad)" stroke-width="12" stroke-linecap="round" filter="url(#glow)"/>
+
+  <!-- Runner Figure Icon -->
+  <g transform="translate(180, 110) scale(1.15)" fill="#ffffff">
+    <!-- Head -->
+    <circle cx="85" cy="35" r="22" fill="url(#trailGrad)"/>
+    <!-- Body / Torso -->
+    <path d="M70 65 L95 60 L115 110 L95 120 Z" fill="#f8fafc"/>
+    <!-- Arms -->
+    <path d="M75 68 L45 92 L52 118" fill="none" stroke="#f8fafc" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M95 65 L125 78 L142 62" fill="none" stroke="url(#trailGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Legs in dynamic stride -->
+    <path d="M108 112 L145 142 L172 178" fill="none" stroke="url(#trailGrad)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M85 118 L55 152 L22 145" fill="none" stroke="#f8fafc" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

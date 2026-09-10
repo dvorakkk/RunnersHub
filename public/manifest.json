@@ -1,0 +1,19 @@
+{
+  "name": "RunnersHub — Find Your Next Run",
+  "short_name": "RunnersHub",
+  "description": "Discover and share trail and road running routes with 3D flyovers, elevation profiles, and GPX downloads.",
+  "start_url": "/#explore",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["sports", "fitness", "navigation", "travel"]
+}

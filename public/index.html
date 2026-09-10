@@ -6,14 +6,23 @@
 <title>RunnersHub — Find Your Next Run</title>
 <meta name="description" content="RunnersHub — discover and share trail and road running routes with maps, elevation profiles, difficulty insights, and GPX downloads."/>
 <meta name="google-adsense-account" content="ca-pub-1507853424928939"/>
-<script src="/config.js"></script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1507853424928939"
      crossorigin="anonymous"></script>
 <meta name="theme-color" content="#0f172a"/>
+<link rel="manifest" href="/manifest.json"/>
+<link rel="icon" type="image/svg+xml" href="/icon.svg"/>
+<link rel="apple-touch-icon" href="/icon.svg"/>
 <meta property="og:title" content="RunnersHub — Find Your Next Run"/>
-<meta property="og:description" content="Discover trail and road running routes with maps, elevation profiles, difficulty insights, and GPX downloads."/>
+<meta property="og:description" content="Discover trail and road running routes with maps, 3D flyovers, elevation profiles, difficulty insights, and GPX downloads."/>
 <meta property="og:type" content="website"/>
+<meta property="og:image" content="/icon.svg"/>
+<meta property="og:site_name" content="RunnersHub"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="RunnersHub — Find Your Next Run"/>
+<meta name="twitter:description" content="Discover trail and road running routes with maps, 3D flyovers, elevation profiles, difficulty insights, and GPX downloads."/>
+<meta name="twitter:image" content="/icon.svg"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"/>
 <style>
 /* ═══════════════════════════════════════════════════════════
    DESIGN TOKENS — Slate Dark Theme
@@ -61,7 +70,6 @@ img{max-width:100%;display:block}
 button{cursor:pointer;font-family:inherit;border:none;outline:none}
 input,select,textarea{font-family:inherit;outline:none}
 a{color:var(--sky);text-decoration:none}
-body.points-disabled .points-only, body.points-disabled #nav-rewards, body.points-disabled [data-tab="rewards"], body.points-disabled [data-mobile-tab="rewards"], body.points-disabled #tab-rewards{display:none !important}
 
 /* ═══════════════════════════════════════════════════════════
    LOADING SCREEN
@@ -92,8 +100,8 @@ body.points-disabled .points-only, body.points-disabled #nav-rewards, body.point
   display:flex;align-items:center;padding:0 20px;height:56px}
 .nav-logo{font-size:17px;font-weight:900;letter-spacing:-.5px;
   color:var(--text-pri);margin-right:24px;white-space:nowrap}
-.nav-logo .t{color:var(--trail)}
-.nav-logo .r{color:var(--sky)}
+.nav-logo .t{color:#E8222F}
+.nav-logo .r{color:var(--text-pri)}
 #site-footer{
   text-align:center;
   padding:18px 16px 22px;
@@ -286,20 +294,20 @@ body.points-disabled .points-only, body.points-disabled #nav-rewards, body.point
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:7px;
   padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:700;
-  transition:var(--transition);white-space:nowrap;line-height:1}
-.btn-emerald{background:var(--emerald);color:#fff}
-.btn-emerald:hover{background:var(--emerald-d);box-shadow:0 0 16px rgba(16,185,129,.35)}
-.btn-sky{background:var(--sky);color:#0f172a}
-.btn-sky:hover{background:var(--sky-d)}
-.btn-rose{background:var(--rose);color:#fff}
-.btn-rose:hover{background:#9f1239}
+  transition:var(--transition);white-space:nowrap;line-height:1;cursor:pointer}
+.btn-emerald{background:var(--emerald);color:#fff;border:1px solid var(--emerald)}
+.btn-emerald:hover{background:var(--emerald-d);border-color:var(--emerald-d);box-shadow:0 0 16px rgba(16,185,129,.35)}
+.btn-sky{background:var(--sky);color:#0f172a;border:1px solid var(--sky)}
+.btn-sky:hover{background:var(--sky-d);border-color:var(--sky-d)}
+.btn-rose{background:var(--rose);color:#fff;border:1px solid var(--rose)}
+.btn-rose:hover{background:#9f1239;border-color:#9f1239}
 .btn-ghost{background:transparent;color:var(--text-sec);border:1px solid var(--border)}
-.btn-ghost:hover{background:var(--bg-700);color:var(--text-pri);border-color:var(--border-l)}
+.btn-ghost:hover{background:var(--bg-700);color:var(--text-pri);border-color:var(--text-sec)}
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:8px}
 .btn-icon{padding:7px;border-radius:8px;background:var(--bg-700);
-  color:var(--text-muted);border:1px solid var(--border)}
-.btn-icon:hover{color:var(--text-pri);background:var(--bg-600)}
-.btn[disabled]{opacity:.5;cursor:not-allowed}
+  color:var(--text-muted);border:1px solid var(--border);cursor:pointer}
+.btn-icon:hover{color:var(--text-pri);background:var(--bg-600);border-color:var(--text-pri)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
 
 /* ═══════════════════════════════════════════════════════════
    BADGES
@@ -808,7 +816,7 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
   box-shadow:0 8px 30px rgba(0,0,0,.14)
 }
 .nav-logo{font-size:20px;letter-spacing:-.8px;margin-right:28px}
-.nav-logo .t{color:var(--trail)}
+.nav-logo .t{color:#E8222F}
 .nav-tabs{gap:5px}
 .nav-tab{padding:9px 13px;border-radius:10px;font-size:12px;font-weight:750;color:#8ea0b8}
 .nav-tab:hover{background:rgba(148,163,184,.08);color:var(--text-pri)}
@@ -977,7 +985,9 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
 
 .upload-reward-hint{margin-top:8px;padding:9px 11px;border:1px solid rgba(245,158,11,.18);border-radius:10px;background:rgba(245,158,11,.06);color:var(--text-muted);font-size:11px;line-height:1.45}.upload-reward-hint b{color:#fbbf24}
 #nav-rewards{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:linear-gradient(135deg,rgba(245,158,11,.14),rgba(56,189,248,.10));border:1px solid rgba(245,158,11,.28);color:#fbbf24;font-size:12px;font-weight:850;cursor:pointer;white-space:nowrap}#nav-rewards:hover{border-color:rgba(245,158,11,.55);transform:translateY(-1px)}.reward-pill-num{font-variant-numeric:tabular-nums;color:#fff}.reward-panel{max-width:760px;margin:0 auto;padding:42px 18px 70px}.reward-hero{padding:30px;border:1px solid var(--border);border-radius:20px;background:linear-gradient(145deg,rgba(56,189,248,.08),rgba(16,185,129,.06));box-shadow:var(--shadow)}.reward-title{font-size:30px;line-height:1.1;margin:0 0 10px;font-weight:950;letter-spacing:-.7px}.reward-sub{color:var(--text-sec);line-height:1.6;max-width:620px}.reward-balance{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:22px;padding:18px 20px;border-radius:16px;background:var(--bg-800);border:1px solid var(--border)}.reward-balance strong{font-size:28px;color:#fbbf24;font-variant-numeric:tabular-nums}.reward-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}.reward-card{padding:18px;border:1px solid var(--border);border-radius:16px;background:var(--bg-800)}.reward-card h3{margin:0 0 6px;font-size:14px}.reward-card p{margin:0;color:var(--text-muted);font-size:12px;line-height:1.5}.reward-note{margin-top:14px;font-size:11px;color:var(--text-dim);line-height:1.55}.reward-ad-disabled{opacity:.72}.sg-reward-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.sg-reward-choice{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--bg-800);text-align:left;cursor:pointer;transition:var(--transition)}.sg-reward-choice:hover{border-color:var(--border-l);transform:translateY(-1px)}.sg-reward-choice strong{display:block;color:var(--text-pri);font-size:13px}.sg-reward-choice small{display:block;color:var(--text-muted);margin-top:3px;font-size:11px;line-height:1.4}.sg-points-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:999px;background:rgba(245,158,11,.12);color:#fbbf24;font-size:10px;font-weight:850}#site-footer .fc-a{color:var(--sky);font-weight:950}#site-footer .fc-runs{color:var(--emerald);font-weight:950;letter-spacing:.08em}@media(max-width:700px){.reward-grid{grid-template-columns:1fr}.sg-reward-grid{grid-template-columns:1fr}.reward-title{font-size:25px}}
-</style>
+[data-release-rewards-disabled="true"]{display:none!important}</style>
+  <script src="/config.js"></script>
+  <link rel="stylesheet" href="./3dflyover/3dflyover.css?v=23">
 </head>
 <body>
 
@@ -1010,7 +1020,10 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
       <button class="nav-tab" data-tab="discover">
         <span class="tab-icon">🔥</span><span class="tab-label">Discover</span>
       </button>
-      <button class="nav-tab" data-tab="rewards"><span class="tab-icon">🪙</span><span class="tab-label">Rewards</span></button>
+      <button class="nav-tab" data-tab="create3d">
+        <span class="tab-icon">🏔️</span><span class="tab-label">Create 3D</span>
+      </button>
+      <button class="nav-tab points-nav" data-tab="rewards"><span class="tab-icon">🪙</span><span class="tab-label">Rewards</span></button>
       <button class="nav-tab support-tab" data-tab="support">
         <span class="tab-icon">💝</span><span class="tab-label">Donate Me</span>
       </button>
@@ -1028,7 +1041,8 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
       <button type="button" data-mobile-tab="explore"><span>🗺️</span> Explore</button>
       <button type="button" data-mobile-tab="upload"><span>📤</span> Upload Route</button>
       <button type="button" data-mobile-tab="discover"><span>🔥</span> Discover</button>
-      <button type="button" data-mobile-tab="rewards"><span>🪙</span> Rewards</button>
+      <button type="button" data-mobile-tab="create3d"><span>🏔️</span> Create 3D</button>
+      <button type="button" class="points-mobile-nav" data-mobile-tab="rewards"><span>🪙</span> Rewards</button>
       <button type="button" data-mobile-tab="support"><span>💝</span> Donate Me</button>
     </div>
   </nav>
@@ -1313,7 +1327,7 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
             <div style="display:flex;justify-content:flex-end;margin-top:3px">
               <span id="uf-details-count" style="font-size:10px;color:var(--text-dim)">0 / 2000</span>
             </div>
-            <div class="upload-reward-hint points-only">🪙 <b>+30 points</b> when your route is successfully published · max 2 upload rewards per day</div>
+            <div class="upload-reward-hint" id="upload-reward-hint">🪙 <b>+30 points</b> when your route is successfully published · max 2 upload rewards per day</div>
           </div>
 
           <div id="upload-status"></div>
@@ -1329,6 +1343,130 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
     <!-- ══════════════════════════════════════
          DONATE / CONTACT TAB
     ══════════════════════════════════════ -->
+    <div id="tab-create3d" class="tab-view">
+      <section class="create3d-page">
+        <div class="create3d-head">
+          <div>
+            <div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> STRAVA ACTIVITY → 3D FLYOVER</div>
+            <h1 class="create3d-title">Turn your Strava run into a 3D flyover.</h1>
+            <p class="create3d-sub">Connect Strava first. Then paste a public activity link — including <b>strava.app.link</b> share links — and RunnersHub will load the route onto real 3D terrain.</p>
+          </div>
+          <div class="create3d-badge">🏔️ <span>Preview free</span><b>40 🪙 to export</b></div>
+        </div>
+
+        <div class="create3d-connect optional" id="create3d-connect-card">
+          <div class="create3d-connect-icon">↗</div>
+          <div class="create3d-connect-copy"><h2>Connect Strava <span>optional API access</span></h2><p>Public-link import works without OAuth when Strava exposes the activity publicly. Connect Strava if you want the official API path when your account/app has access.</p></div>
+          <button class="btn btn-ghost strava-connect-btn" id="create3d-connect-btn" type="button">Connect Strava</button>
+        </div>
+
+        <div class="create3d-import" id="create3d-import-card">
+          <div class="create3d-import-top"><div><span class="create3d-kicker">STEP 1</span><h2>Paste a public Strava activity</h2><p>Works with normal activity URLs and <code>strava.app.link/…</code> share links. No Strava subscription is required for the public-link importer.</p></div><div id="create3d-strava-user" class="strava-user-pill">Public import</div></div>
+          <div class="create3d-input-row"><input id="create3d-url" class="create3d-url" type="url" placeholder="https://www.strava.app.link/KE4YtNQFZ5b" autocomplete="off"/><button class="btn btn-emerald" id="create3d-load-btn" type="button">Load Activity →</button></div>
+          <div id="create3d-dropzone" class="c3-dropzone">
+            <b>⬆ Upload GPX or a Strava export (ZIP)</b>
+            <span>Drag &amp; drop here, or choose files · multiple files supported · files never leave your device</span>
+            <label class="btn btn-ghost btn-sm c3-file-label">Choose GPX / ZIP<input id="create3d-gpx-file" type="file" accept=".gpx,.zip,application/gpx+xml,application/zip,application/x-zip-compressed,text/xml,application/xml" multiple hidden></label>
+            <small>No Strava subscription needed. Get your whole history: Strava → Settings → My Account → Download your account (ZIP contains one .gpx per activity).</small>
+          </div>
+          <div id="create3d-gpx-list" class="c3-gpx-list"></div>
+          <div class="create3d-fallback-row"><span>Connected users get heart rate, pace &amp; full-resolution GPS</span><button id="create3d-my-btn" class="btn btn-ghost btn-sm" type="button" hidden>📥 Load my Strava activities</button></div>
+          <div id="create3d-my-list" class="c3-gpx-list"></div>
+          <div id="create3d-import-status" class="create3d-status"></div>
+        </div>
+
+        <div class="create3d-workspace" id="create3d-workspace" hidden>
+          <div class="create3d-map-column">
+          <div class="create3d-map-shell">
+            <div id="create3d-map"></div><div id="create3d-runner-marker" class="create3d-runner-marker" aria-hidden="true" style="display:none"><span>●</span></div>
+            <div class="create3d-map-toolbar" aria-label="Map view">
+              <button type="button" class="c3-map-mode active" data-c3-map-mode="terrain">🗺️ Terrain</button>
+              <button type="button" class="c3-map-mode" data-c3-map-mode="satellite">🛰️ Satellite</button>
+            </div>
+            <div class="create3d-map-overlay"><div><span id="create3d-activity-name">Activity</span><small id="create3d-activity-meta">—</small></div><span class="create3d-live-pill">● 3D READY</span></div>
+            <div id="create3d-loading-overlay" class="create3d-loading-overlay">
+              <div class="c3-loading-card">
+                <div class="c3-loading-kicker">PREPARING 3D PREVIEW</div>
+                <div class="c3-loading-title" id="c3-loading-title">Reading route…</div>
+                <div class="c3-progress-track"><div id="c3-progress-fill" class="c3-progress-fill" style="width:0%"></div></div>
+                <div class="c3-progress-meta"><span id="c3-progress-label">Starting</span><b id="c3-progress-pct">0%</b></div>
+                <div id="c3-loading-steps" class="c3-loading-steps">
+                  <div data-c3-step="parse">○ Read GPX</div>
+                  <div data-c3-step="validate">○ Validate coordinates</div>
+                  <div data-c3-step="location">○ Validate location</div>
+                  <div data-c3-step="map">○ Load map</div>
+                  <div data-c3-step="terrain">○ Prepare 3D terrain</div>
+                  <div data-c3-step="ready">○ Preview ready</div>
+                </div>
+              </div>
+            </div>
+            <div id="create3d-finish-overlay" class="create3d-finish-overlay" hidden>
+              <div class="finish-card">
+                <button type="button" id="create3d-finish-close" class="finish-close" aria-label="Close summary">✕</button>
+                <div class="finish-top">
+                  <span class="finish-kicker"><i></i>RUN COMPLETE</span>
+                  <span class="finish-sport" id="finish-sport">RUN</span>
+                  <span class="finish-est" id="finish-est" hidden title="Estimated — this GPX has no time data">EST</span>
+                </div>
+                <div class="finish-hero" id="finish-hero">
+                  <span class="finish-hero-label">TOTAL DISTANCE</span>
+                  <div class="finish-hero-row"><strong id="finish-distance">—</strong><span class="finish-unit">KM</span></div>
+                </div>
+                <div class="finish-name" id="finish-name">—</div>
+                <div class="finish-primary" id="finish-primary"></div>
+                <div class="finish-stats" id="finish-stats"></div>
+                <div class="finish-foot"><span class="finish-dot"></span>RUNNERSHUB</div>
+              </div>
+            </div>
+            <canvas id="create3d-hud" class="create3d-hud" aria-hidden="true" width="0" height="0"></canvas>
+          </div>
+          <div class="create3d-preview-controls" aria-label="Flyover playback controls">
+            <div class="c3-preview-buttons">
+              <button id="create3d-preview-playback" type="button" class="c3-playback-btn" disabled>▶ Preview</button>
+              <button id="create3d-preview-pause" type="button" class="c3-playback-btn" disabled>⏸ Pause</button>
+            </div>
+            <input id="create3d-preview-scrubber" class="c3-preview-scrubber" type="range" min="0" max="1000" value="0" step="1" disabled aria-label="Preview position">
+            <span id="create3d-preview-time" class="c3-preview-time">0:00 / 0:20</span>
+            <span id="create3d-preview-progress" class="c3-preview-progress">0%</span>
+          </div>
+          </div>
+          <aside class="create3d-panel">
+            <div class="create3d-panel-top"><div><span class="create3d-kicker">STEP 3</span><h2>Preview &amp; customize</h2></div><button id="create3d-reset" class="btn btn-ghost btn-sm" type="button">Reset view</button></div>
+            <div class="create3d-stat-summary" id="create3d-stat-summary"></div>
+            <div class="create3d-section"><h3>Show at finish</h3><div class="create3d-checks"><label><input type="checkbox" data-c3stat="distance" checked/> Distance</label><label><input type="checkbox" data-c3stat="time" checked/> Moving Time</label><label><input type="checkbox" data-c3stat="pace" checked/> Pace</label><label><input type="checkbox" data-c3stat="elevation" checked/> Elevation Gain</label><label><input type="checkbox" data-c3stat="difficulty" checked/> Difficulty</label><label><input type="checkbox" data-c3stat="date" checked/> Date</label></div></div>
+            <div class="create3d-section"><h3>Running marker</h3><div class="create3d-line-colors" role="group" aria-label="Running marker color">
+              <button type="button" class="c3-color-option active" data-c3-marker-color="#FC5200" title="Orange"><i style="background:#FC5200"></i>Orange</button>
+              <button type="button" class="c3-color-option" data-c3-marker-color="#38BDF8" title="Blue"><i style="background:#38BDF8"></i>Blue</button>
+            </div></div>
+            <div class="create3d-section"><h3>Route line color</h3><div class="create3d-line-colors" role="group" aria-label="Route line color">
+              <button type="button" class="c3-color-option active" data-c3-line-color="#38BDF8" title="Blue"><i style="background:#38BDF8"></i>Blue</button>
+              <button type="button" class="c3-color-option" data-c3-line-color="#FC5200" title="Orange"><i style="background:#FC5200"></i>Orange</button>
+            </div></div>
+            <div class="create3d-section"><h3>Custom display</h3><div class="create3d-fields"><label>Moving time<input id="c3-time" placeholder="Original"/></label><label>Pace / km<input id="c3-pace" placeholder="Original"/></label><label>Timestamp<input id="c3-date" type="datetime-local"/></label></div></div>
+            <div class="create3d-section"><h3>Camera settings</h3><div class="create3d-fields"><label>Duration (sec)<div class="c3-slider-group"><input id="c3-duration" type="range" min="8" max="60" value="20" step="1" class="c3-slider"/><span class="c3-slider-val" id="c3-duration-val">20s</span></div></label><label>Camera speed<div class="c3-slider-group"><input id="c3-speed" type="range" min="0.5" max="2" value="1" step="0.1" class="c3-slider"/><span class="c3-slider-val" id="c3-speed-val">1.0x</span></div></label><label>Route line thickness<div class="c3-slider-group"><input id="c3-line-width" type="range" min="2" max="10" value="5" step="1" class="c3-slider"/><span class="c3-slider-val" id="c3-line-width-val">5px</span></div></label></div></div>
+            <div class="create3d-section create3d-video-card"><div class="video-spec"><span>Format</span><b id="c3-video-format">1080 × 1920 · 9:16</b></div><div class="create3d-section-inline"><h3>Aspect ratio</h3><div class="create3d-line-colors" role="group" aria-label="Export aspect ratio"><button type="button" class="c3-color-option active" data-c3-ratio="0">9:16</button><button type="button" class="c3-color-option" data-c3-ratio="1">1:1</button><button type="button" class="c3-color-option" data-c3-ratio="2">16:9</button></div></div><div class="video-spec"><span>Duration</span><b>20 sec · 30 FPS</b></div><div class="video-spec"><span>Export</span><b>40 🪙</b></div></div>
+            <div class="create3d-section create3d-elevation-card"><h3>Terrain validation</h3><div id="create3d-elevation-status" class="create3d-elevation-status">⏳ Waiting for terrain samples…</div></div>
+            <div class="create3d-actions"><button id="create3d-preview-btn" class="btn btn-ghost" type="button">▶ Preview Flyover</button><button id="create3d-generate-btn" class="btn btn-emerald" type="button">🎬 Generate Video</button></div>
+            <div id="create3d-gate" class="create3d-gate"></div>
+          </aside>
+        </div>
+      </section>
+    </div><!-- /tab-create3d -->
+
+    <!-- Error/Message Dialog -->
+    <div id="c3-error-dialog" class="c3-error-dialog hidden">
+      <div id="c3-error-icon">⚠️</div>
+      <div id="c3-error-title" class="c3-error-title">Error</div>
+      <div id="c3-error-msg" class="c3-error-msg">Something went wrong</div>
+      <div class="c3-error-actions">
+        <button id="c3-error-retry" class="c3-error-btn c3-error-retry" type="button">⟳ Retry</button>
+        <button id="c3-error-close" class="c3-error-btn c3-error-close" type="button">✕ Close</button>
+      </div>
+    </div>
+
+    <!-- Performance Stats (hidden by default) -->
+    <div id="c3-perf-stats" class="c3-perf-stats hidden"></div>
+
     <div id="tab-support" class="tab-view">
       <div id="support-wrap">
         <div class="support-hero">
@@ -1358,11 +1496,19 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
       </div>
     </div><!-- /tab-support -->
 
-    <div id="tab-rewards" class="tab-view"><div class="reward-panel"><div class="reward-hero"><div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> RUNNERSHUB REWARDS</div><h1 class="reward-title">Earn points. Unlock more routes.</h1><p class="reward-sub">Contribute useful routes, help other runners discover them, or watch a short rewarded ad when available. Your points stay inside RunnersHub and unlock GPX routes.</p><div class="reward-balance"><div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800">Your points</div><strong id="rewards-page-points">0</strong></div><div style="text-align:right;font-size:11px;color:var(--text-muted)"><div>Download unlock</div><b style="color:var(--text-pri);font-size:14px">15 points</b></div></div></div><div class="reward-grid"><div class="reward-card"><h3>📤 Publish a route</h3><p>Earn <b style="color:#fbbf24">+30 points</b> when a valid GPX is successfully published. Up to 2 upload rewards per day.</p></div><div class="reward-card"><h3>💚 Share a route</h3><p>Earn <b style="color:#fbbf24">+15 points</b> per verified share. Up to 3 share rewards per day, with one reward per route each day.</p></div><div class="reward-card reward-ad-disabled"><h3>🎬 Watch an ad</h3><p>Earn <b style="color:#fbbf24">+20 points</b> per completed rewarded ad, up to 3 per day. Google rewarded verification is being connected separately.</p></div><div class="reward-card"><h3>⬇️ Unlock a GPX</h3><p>Spend <b style="color:#fbbf24">15 points</b> once. A route you have unlocked can be downloaded again for free.</p></div></div><div class="reward-note"><b>Daily earning limits:</b> up to 2 upload rewards, 3 share rewards, and 3 rewarded ads. Points have no cash value, cannot be transferred, and only unlock RunnersHub features. Limits reset at 00:00 UTC.</div></div></div><!-- /tab-rewards -->
+    <div id="tab-rewards" class="tab-view"><div class="reward-panel"><div class="reward-hero"><div class="hero-eyebrow"><span class="hero-eyebrow-dot"></span> RUNNERSHUB REWARDS</div><h1 class="reward-title">Earn points. Unlock more.</h1><p class="reward-sub">Use points for GPX downloads and 3D Flyover exports, or use verified sharing as a fallback when you do not have enough points.</p><div class="reward-balance"><div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;font-weight:800">Current balance</div><strong><span id="rewards-page-points">0</span> points</strong></div><div style="text-align:right"><div style="font-size:11px;color:var(--text-muted)">3D Flyover</div><strong style="font-size:20px">40 🪙</strong></div></div></div><div class="reward-grid">
+  <div class="reward-card"><h3>📤 Upload a route</h3><p><b id="rw-upload-pts">+70</b> points when your route is published · once per route, max <span id="rw-upload-limit">2</span>/day.</p></div>
+  <div class="reward-card"><h3>💚 Share a route</h3><p><b id="rw-share-pts">+15</b> points per verified share · max <span id="rw-share-limit">3</span>/day.</p></div>
+  <div class="reward-card"><h3>❤️ Like a route</h3><p><b id="rw-like-pts">+2</b> points · once per route, max <span id="rw-like-limit">10</span>/day · not on your own route.</p></div>
+  <div class="reward-card"><h3>💬 Comment on a route</h3><p><b id="rw-comment-pts">+5</b> points · once per route, max <span id="rw-comment-limit">5</span>/day · not on your own route.</p></div>
+  <div class="reward-card"><h3>⬇️ Download GPX</h3><p>−<span id="rw-download-cost">15</span> points, and a <b>verified share is always required first</b>.</p></div>
+  <div class="reward-card"><h3>🏔️ Create 3D</h3><p>Preview real 3D terrain for free. Final 1080×1920 export −<span id="rw-flyover-cost">40</span> points.</p></div>
+</div>
+<div class="reward-note"><b>How unlocking works:</b> share the route (we verify the post link) → then spend <span id="rw-download-note-cost">15</span> points to download the GPX. Points are tied to your anonymous runner ID and stored in the spreadsheet wallet — they are not shared between browsers or devices.</div></div></div><!-- /tab-rewards -->
 
   </div><!-- /page-content -->
 
-  <footer id="site-footer">Solo-built by <span class="fc-a">AM</span> fueled by <span class="fc-runs">RUNS</span><span style="display:inline-block;margin:0 8px;color:var(--text-dim)">•</span><a href="/privacy" style="color:var(--text-dim);text-decoration:none">Privacy Policy</a><span style="margin:0 5px;color:var(--text-dim)">•</span><a href="/terms" style="color:var(--text-dim);text-decoration:none">Terms of Service</a></footer>
+  <footer id="site-footer">Solo-built by <span class="fc-a">AM</span> fueled by <span class="fc-runs">RUNS</span></footer>
 
 </div><!-- /app -->
 
@@ -1393,9 +1539,57 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
+     PHASE 5F — 3D FLYOVER MODAL
+═══════════════════════════════════════════════════════════ -->
+<div id="fly3d-overlay" class="fly3d-overlay" aria-hidden="true">
+  <div class="fly3d-modal">
+    <div class="fly3d-preview">
+      <canvas id="fly3d-canvas" width="540" height="960"></canvas>
+      <div class="fly3d-preview-hud"><span class="fly3d-chip" id="fly3d-type-chip">3D ROUTE</span><span class="fly3d-chip" id="fly3d-distance-chip">—</span></div>
+      <button type="button" class="fly3d-play" id="fly3d-play" aria-label="Play preview">▶</button>
+      <div class="fly3d-watermark">RUNNERSHUB</div>
+    </div>
+    <aside class="fly3d-side">
+      <button type="button" class="fly3d-close" id="fly3d-close" aria-label="Close">✕</button>
+      <h2>🏔️ 3D Flyover</h2>
+      <p class="sub">Preview the route in your browser before spending points on the final vertical video.</p>
+      <div class="fly3d-section">
+        <div class="fly3d-section-title">Statistics at the finish</div>
+        <div class="fly3d-stat-grid" id="fly3d-stat-grid">
+          <div class="fly3d-stat-row"><label><input type="checkbox" data-stat="distance" checked> Distance</label></div>
+          <div class="fly3d-stat-row"><label><input type="checkbox" data-stat="time" checked> Moving Time</label></div>
+          <div class="fly3d-stat-row"><label><input type="checkbox" data-stat="pace" checked> Pace</label></div>
+          <div class="fly3d-stat-row"><label><input type="checkbox" data-stat="elevation" checked> Elevation Gain</label></div>
+          <div class="fly3d-stat-row"><label><input type="checkbox" data-stat="difficulty" checked> Difficulty</label></div>
+          <div class="fly3d-stat-row"><label><input type="checkbox" data-stat="date" checked> Date</label></div>
+        </div>
+      </div>
+      <div class="fly3d-section">
+        <div class="fly3d-section-title">Custom display values</div>
+        <div class="fly3d-custom">
+          <div class="fly3d-field"><label>Moving time</label><input id="fly3d-time" value="00:00:00" inputmode="numeric"></div>
+          <div class="fly3d-field"><label>Pace / km</label><input id="fly3d-pace" value="—" inputmode="numeric"></div>
+          <div class="fly3d-field"><label>Date &amp; time</label><input id="fly3d-date" value="" type="datetime-local"></div>
+        </div>
+        <div class="fly3d-note" style="margin-top:8px">Custom values are presentation data for the generated graphic/video.</div>
+      </div>
+      <div class="fly3d-section">
+        <div class="fly3d-cost"><span>Final 1080×1920 MP4</span><strong>🪙 40 points</strong></div>
+        <div class="fly3d-actions">
+          <button type="button" class="btn btn-ghost" id="fly3d-replay">↻ Replay Preview</button>
+          <button type="button" class="btn btn-emerald" id="fly3d-generate">🎬 Generate Video — 40 🪙</button>
+        </div>
+        <div id="fly3d-status" class="fly3d-status"></div>
+        <div class="fly3d-export-warning" id="fly3d-export-warning">Preview is free. Points are not charged until a supported final renderer is ready and generation actually starts.</div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
      SHARE-TO-UNLOCK MODAL — shown before the first GPX download
 ═══════════════════════════════════════════════════════════ -->
-<div id="share-gate-overlay" class="sg-overlay"><div class="sg-modal"><button type="button" id="sg-close-btn" class="sg-close" aria-label="Close">✕</button><div class="sg-icon">💚</div><h2 class="sg-title">Share to unlock</h2><p class="sg-sub">Share this route on a supported platform, then paste the public post link below to unlock the GPX download.</p><div class="sg-reward-grid"><button type="button" class="sg-reward-choice" id="sg-share-reward-btn"><strong>💚 Share this route</strong><small>Choose a supported platform, publish the route, then verify your post link.</small></button></div><div id="sg-share-section" style="display:none"><div class="sg-share-grid"><button type="button" class="sg-share-btn sg-x" data-platform="x"><span class="sg-share-icon">𝕏</span> X</button><button type="button" class="sg-share-btn sg-fb" data-platform="facebook"><span class="sg-share-icon">📘</span> Facebook</button><button type="button" class="sg-share-btn sg-th" data-platform="threads"><span class="sg-share-icon">🧵</span> Threads</button><button type="button" class="sg-share-btn sg-ig" data-platform="instagram"><span class="sg-share-icon">📸</span> Instagram</button><button type="button" class="sg-share-btn" data-platform="whatsapp"><span class="sg-share-icon">💬</span> WhatsApp</button><button type="button" class="sg-share-btn" data-platform="telegram"><span class="sg-share-icon">✈️</span> Telegram</button><button type="button" class="sg-share-btn" data-platform="linkedin"><span class="sg-share-icon">in</span> LinkedIn</button><button type="button" class="sg-share-btn" data-platform="reddit"><span class="sg-share-icon">👽</span> Reddit</button></div><div id="sg-verify-section" class="sg-verify-section"><p class="sg-verify-label">Paste the link to your <span id="sg-verify-platform-name">post</span> below to verify:</p><input type="text" id="sg-verify-input" class="sg-verify-input" placeholder="https://…" autocomplete="off"/><button type="button" id="sg-verify-btn" class="btn btn-sky btn-sm sg-verify-btn">Verify Share &amp; Unlock</button><p id="sg-verify-error" class="sg-verify-error"></p></div></div><div class="sg-mission-status" id="sg-mission-status"><span class="sg-dot"></span> Share the route to unlock the GPX</div><button type="button" id="sg-download-btn" class="btn btn-emerald sg-download-btn" disabled>🔒 Share to unlock</button><div class="sg-divider"><span>or, if you'd like</span></div><a id="sg-saweria-link" class="sg-saweria-btn" href="https://saweria.co/siam" target="_blank" rel="noopener noreferrer">☕ Support RunnersHub on Saweria</a></div></div>
+<div id="share-gate-overlay" class="sg-overlay"><div class="sg-modal"><button type="button" id="sg-close-btn" class="sg-close" aria-label="Close">✕</button><div class="sg-icon">🔗</div><h2 class="sg-title">Share to unlock GPX</h2><p class="sg-sub">Share this route on a supported platform, then paste your public post link below. Once verified, your GPX download is unlocked.</p><div class="sg-reward-grid"><button type="button" class="sg-reward-choice" id="sg-share-reward-btn"><strong>💚 Share this route</strong><small>Choose a platform, publish the route, then verify your post link.</small></button><button type="button" class="sg-reward-choice" id="sg-points-reward-btn"><strong>🪙 Use 15 points</strong><small id="sg-points-reward-copy">Unlock immediately with your points balance.</small></button></div><div id="sg-share-section" style="display:none"><div class="sg-share-grid"><button type="button" class="sg-share-btn sg-x" data-platform="x"><span class="sg-share-icon">𝕏</span> X</button><button type="button" class="sg-share-btn sg-fb" data-platform="facebook"><span class="sg-share-icon">📘</span> Facebook</button><button type="button" class="sg-share-btn sg-th" data-platform="threads"><span class="sg-share-icon">🧵</span> Threads</button><button type="button" class="sg-share-btn sg-ig" data-platform="instagram"><span class="sg-share-icon">📸</span> Instagram</button><button type="button" class="sg-share-btn" data-platform="whatsapp"><span class="sg-share-icon">💬</span> WhatsApp</button><button type="button" class="sg-share-btn" data-platform="telegram"><span class="sg-share-icon">✈️</span> Telegram</button><button type="button" class="sg-share-btn" data-platform="linkedin"><span class="sg-share-icon">in</span> LinkedIn</button><button type="button" class="sg-share-btn" data-platform="reddit"><span class="sg-share-icon">👽</span> Reddit</button></div><div id="sg-verify-section" class="sg-verify-section"><p class="sg-verify-label">Paste the link to your <span id="sg-verify-platform-name">post</span> below to verify:</p><input type="text" id="sg-verify-input" class="sg-verify-input" placeholder="https://…" autocomplete="off"/><button type="button" id="sg-verify-btn" class="btn btn-sky btn-sm sg-verify-btn">Verify Share &amp; Unlock GPX</button><p id="sg-verify-error" class="sg-verify-error"></p></div></div><div class="sg-mission-status" id="sg-mission-status"><span class="sg-dot"></span> Share the route to unlock GPX</div><button type="button" id="sg-download-btn" class="btn btn-emerald sg-download-btn" disabled>🔒 Share or use points to unlock</button><div class="sg-divider"><span>or, if you'd like</span></div><a id="sg-saweria-link" class="sg-saweria-btn" href="https://saweria.co/siam" target="_blank" rel="noopener noreferrer">☕ Support RunnersHub on Saweria</a></div></div>
 
 <!-- TOAST CONTAINER -->
 <div id="toasts"></div>
@@ -1403,12 +1597,21 @@ body{background-image:radial-gradient(circle at 15% -10%,rgba(16,185,129,.08),tr
 <!-- ═══════════════════════════════════════════════════════════
      JAVASCRIPT — loaded in dependency order
 ═══════════════════════════════════════════════════════════ -->
-<script>
-/* Apply public release feature flags before the app initializes. */
-(() => {
-  const cfg = window.RUNNERSHUB_CONFIG || {};
-  if (cfg.rewards?.enabled === false) document.body.classList.add("points-disabled");
+<script>// ─── RELEASE CONFIG UI ───────────────────────────────────────────────────────
+(function applyReleaseConfig(){
+  const C = window.RUNNERSHUB_CONFIG || {};
+  const rewardsOn = !!C.rewards?.enabled;
+  const mode = C.download?.unlockMode || 'share';
+  document.documentElement.dataset.downloadUnlockMode = mode;
+  if (!rewardsOn) {
+    document.querySelectorAll('#nav-rewards,[data-tab="rewards"],[data-mobile-tab="rewards"],#nav-reward-points,#rewards-page-points').forEach(el=>{
+      const holder = el.closest('.nav-tab') || el;
+      holder.style.display='none';
+    });
+  }
+  if (!C.ads?.display) document.querySelectorAll('.adsbygoogle,.ad-slot').forEach(el=>el.style.display='none');
 })();
+
 window.onerror = function(msg, src, line, col, err) {
   var el = document.getElementById('loading');
   if (el) {
@@ -1676,36 +1879,18 @@ function computeElevationGain(elevations, thresholdM) {
 }
 
 // ─── GPX PARSER ───────────────────────────────────────────────────────────────
-function parseGpx(gpxStr) {
-  const doc   = new DOMParser().parseFromString(gpxStr, 'application/xml');
-  const errEl = doc.querySelector('parsererror');
-  if (errEl) throw new Error('Invalid GPX file: ' + errEl.textContent.slice(0, 80));
-
-  const trkpts = [...doc.querySelectorAll('trkpt')];
-  const rtepts = [...doc.querySelectorAll('rtept')];
-  const wpts   = [...doc.querySelectorAll('wpt')];
-  const nodes  = trkpts.length ? trkpts : (rtepts.length ? rtepts : wpts);
-  if (!nodes.length) throw new Error('No track, route, or waypoint points found in GPX file');
+async function parseGpx(gpxStr) {
+  // Shared parser (public/gpx-parser.js): the upload flow and the 3D flyover
+  // must extract the exact same points, so one file can never behave differently
+  // in the two places.
+  const { parseGpxPoints } = await import('./3dflyover/gpx-parser.js?v=22');
+  const { points } = parseGpxPoints(gpxStr);
 
   const pts  = [];
   const eles = [];
-
-  if (nodes.length > 250000)
-    throw new Error('GPX contains too many route points (maximum 250,000)');
-
-  nodes.forEach(pt => {
-    const lat = parseFloat(pt.getAttribute('lat'));
-    const lon = parseFloat(pt.getAttribute('lon'));
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
-        lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-      throw new Error('GPX contains an invalid latitude/longitude');
-    }
-    const eleEl = pt.querySelector('ele');
-    const eleVal = eleEl ? parseFloat(eleEl.textContent) : 0;
-    if (eleEl && !Number.isFinite(eleVal))
-      throw new Error('GPX contains an invalid elevation value');
-    pts.push([lat, lon]);
-    eles.push(Number.isFinite(eleVal) ? eleVal : 0);
+  points.forEach(p => {
+    pts.push([p.lat, p.lon]);
+    eles.push(Number.isFinite(p.ele) ? p.ele : 0);
   });
 
   if (pts.length < 2) throw new Error('GPX has fewer than 2 valid track points');
@@ -3083,7 +3268,7 @@ function requestBodySizeBytes(action, payload) {
 }
 
 async function processGpxContent(filename, raw, file = null) {
-  const parsed = parseGpx(raw);
+  const parsed = await parseGpx(raw);
   S.uploadState.gpxRaw    = raw;
   S.uploadState.gpxFile   = file;
   S.uploadState.parsed    = parsed;
@@ -3465,7 +3650,7 @@ async function publishRoute() {
 
     setUploadProgress(100, '✅ Route published successfully!');
     if (finalized?.reward?.uploadReward) {
-      toast(window.RUNNERSHUB_CONFIG?.rewards?.enabled===false ? 'Route published successfully! 🎉' : 'Route published! +30 points 🎉', 'ok');
+      toast('Route published! +' + (RELEASE_CONFIG.points?.earn?.upload?.points ?? 70) + ' points 🎉', 'ok');
       Rewards.wallet = finalized.reward;
       updateRewardUi(finalized.reward);
     } else {
@@ -3603,6 +3788,9 @@ async function onLike(event, routeId) {
     });
     saveLikedToStorage();
     updateCachedLikeCount(routeId, res.likes_count);
+    // Liking earns points only once per route and never on your own route —
+    // the server decides, the client just reports what it was told.
+    if (res.liked) awardInteraction('addLikeReward', routeId, 'likePoints');
 
   } catch(e) {
     wasLiked ? S.likedRoutes.add(routeId) : S.likedRoutes.delete(routeId);
@@ -3652,28 +3840,71 @@ function updateCachedCommentCount(routeId, count) {
 // ─── GPX DOWNLOAD ─────────────────────────────────────────────────────────────
 
 const REWARD_RUNNER_KEY = 'runnershub_anonymous_runner_id';
-const REWARD_DOWNLOAD_COST = 15;
+const RELEASE_CONFIG = window.RUNNERSHUB_CONFIG || {download:{unlockMode:'share'},rewards:{enabled:false},shareUnlock:{enabled:true,dailyLimit:3}};
+const REWARD_DOWNLOAD_COST = Number(RELEASE_CONFIG?.rewards?.share?.points || 15);
 function getRunnerId(){let id=localStorage.getItem(REWARD_RUNNER_KEY);if(!id||!/^[A-Za-z0-9_-]{16,80}$/.test(id)){const b=new Uint8Array(24);crypto.getRandomValues(b);id=Array.from(b).map(x=>x.toString(16).padStart(2,'0')).join('');localStorage.setItem(REWARD_RUNNER_KEY,id);}return id;}
 const Rewards={wallet:null,unlocks:new Set()};
 function updateRewardUi(w){const p=Number(w?.points||0);['nav-reward-points','rewards-page-points'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=p;});}
 async function refreshRewards(){try{const w=await callApi('getRewards',{runnerId:getRunnerId()});Rewards.wallet=w;updateRewardUi(w);return w;}catch(e){console.warn('[rewards] wallet unavailable:',e.message);return null;}}
 async function refreshRewardUnlocks(){try{const ids=await callApi('getRewardUnlocks',{runnerId:getRunnerId()});Rewards.unlocks=new Set((ids||[]).map(String));}catch(e){console.warn('[rewards] unlock list unavailable:',e.message);}}
 function setRewardModalStatus(h,c=false){const e=document.getElementById('sg-mission-status');if(!e)return;e.classList.toggle('sg-complete',!!c);e.innerHTML=h;}
-const ShareGate={routeId:null,triggerBtn:null,selectedPlatform:null};
+const ShareGate={routeId:null,triggerBtn:null,selectedPlatform:null,mode:'route'};
 const SHARE_PLATFORM_META={x:{label:'X',domains:['twitter.com','x.com'],pathRe:/\/status\//i},facebook:{label:'Facebook',domains:['facebook.com','m.facebook.com','fb.watch'],pathRe:null},threads:{label:'Threads',domains:['threads.net','threads.com'],pathRe:/\/post\//i},instagram:{label:'Instagram',domains:['instagram.com'],pathRe:/\/(p|reel|stories)\//i},whatsapp:{label:'WhatsApp',domains:['wa.me','whatsapp.com'],pathRe:null},telegram:{label:'Telegram',domains:['t.me','telegram.me','telegram.org'],pathRe:null},linkedin:{label:'LinkedIn',domains:['linkedin.com'],pathRe:/\/(posts|feed\/update)\//i},reddit:{label:'Reddit',domains:['reddit.com'],pathRe:/\/(r\/[^/]+\/comments|comments)\//i}};
 function shareGateUrlFor(id){return window.location.origin+window.location.pathname+'#route/'+id;}
 function shareGateText(id){const r=findRouteInCache(id);return `Check out "${r?r.route_name:'this route'}" on RunnersHub 🏃⛰️`;}
 function isPlausiblePostUrl(platform,url){const m=SHARE_PLATFORM_META[platform];if(!m||!url)return false;let u;try{u=new URL(url.trim());}catch(_){return false;}if(!['http:','https:'].includes(u.protocol))return false;const host=u.hostname.replace(/^www\./i,'').toLowerCase();if(!m.domains.includes(host))return false;if(m.pathRe&&!m.pathRe.test(u.pathname))return false;return true;}
-function openShareGate(id,btn){ShareGate.routeId=id;ShareGate.triggerBtn=btn;ShareGate.selectedPlatform=null;document.getElementById('share-gate-overlay').classList.add('show');document.getElementById('sg-share-section').style.display='none';document.getElementById('sg-verify-input').value='';document.getElementById('sg-verify-error').textContent='';document.querySelectorAll('.sg-share-btn').forEach(b=>b.classList.remove('sg-done'));setRewardModalStatus('<span class="sg-dot"></span> Share the route to unlock the GPX');const dl=document.getElementById('sg-download-btn');dl.disabled=true;dl.innerHTML='🔒 Share to unlock';}
+function openShareGate(id,btn){ShareGate.mode='route';ShareGate.routeId=id;ShareGate.triggerBtn=btn;ShareGate.selectedPlatform=null;document.getElementById('share-gate-overlay').classList.add('show');document.getElementById('sg-share-section').style.display='none';document.getElementById('sg-verify-input').value='';document.getElementById('sg-verify-error').textContent='';document.querySelectorAll('.sg-share-btn').forEach(b=>b.classList.remove('sg-done'));const pb=document.getElementById('sg-points-reward-btn');const pc=document.getElementById('sg-points-reward-copy');const pe=!!RELEASE_CONFIG.points?.enabled;const bal=Number(Rewards.wallet?.points||0);if(pb){pb.style.display=pe?'':'none';pb.disabled=!pe||bal<Number(RELEASE_CONFIG.points?.costs?.download||15);}if(pc)pc.textContent=pe?`Use ${Number(RELEASE_CONFIG.points?.costs?.download||15)} points now. Balance: ${bal}.`:'Points are disabled.';setRewardModalStatus('<span class="sg-dot"></span> Share the route to unlock GPX');const dl=document.getElementById('sg-download-btn');dl.disabled=true;dl.innerHTML='🔒 Share &amp; verify to unlock';}
 function closeShareGate(){document.getElementById('share-gate-overlay').classList.remove('show');}
-function handleShareRewardClick(){document.getElementById('sg-share-section').style.display='block';setRewardModalStatus('<span class="sg-dot"></span> Share the route, then verify your post link');}
+function handleShareRewardClick(){document.getElementById('sg-share-section').style.display='block';setRewardModalStatus('<span class="sg-dot"></span> Share the route, then verify your public post link');}
 function handleShareClick(platform){const id=ShareGate.routeId,url=encodeURIComponent(shareGateUrlFor(id)),text=encodeURIComponent(shareGateText(id));let shareUrl=null;switch(platform){case'x':shareUrl=`https://twitter.com/intent/tweet?text=${text}&url=${url}`;break;case'facebook':shareUrl=`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`;break;case'threads':shareUrl=`https://www.threads.net/intent/post?text=${text}%20${url}`;break;case'whatsapp':shareUrl=`https://wa.me/?text=${text}%20${url}`;break;case'telegram':shareUrl=`https://t.me/share/url?url=${url}&text=${text}`;break;case'linkedin':shareUrl=`https://www.linkedin.com/sharing/share-offsite/?url=${url}`;break;case'reddit':shareUrl=`https://www.reddit.com/submit?url=${url}&title=${text}`;break;case'instagram':const cap=decodeURIComponent(text)+' '+decodeURIComponent(url);if(navigator.clipboard)navigator.clipboard.writeText(cap).catch(()=>{});toast('Caption copied — paste it into Instagram, then return here.','inf');shareUrl='https://www.instagram.com/';break;}if(shareUrl)window.open(shareUrl,'_blank','noopener,noreferrer,width=600,height=620');document.querySelectorAll('.sg-share-btn').forEach(b=>b.classList.remove('sg-done'));const b=document.querySelector(`.sg-share-btn[data-platform="${platform}"]`);if(b)b.classList.add('sg-done');ShareGate.selectedPlatform=platform;document.getElementById('sg-verify-platform-name').textContent=SHARE_PLATFORM_META[platform].label+' post';document.getElementById('sg-verify-input').value='';document.getElementById('sg-verify-error').textContent='';document.getElementById('sg-verify-section').classList.add('show');document.getElementById('sg-verify-input').focus();}
-async function handleVerifyClick(){const p=ShareGate.selectedPlatform,e=document.getElementById('sg-verify-error'),i=document.getElementById('sg-verify-input');if(!p){e.textContent='Pick a platform above first.';return;}const v=i.value.trim();if(!v){e.textContent='Paste your post link first.';return;}if(!isPlausiblePostUrl(p,v)){e.textContent=`That doesn't look like a valid ${SHARE_PLATFORM_META[p].label} post link.`;return;}try{e.textContent='Verifying…';const action=(window.RUNNERSHUB_CONFIG?.download?.unlockMode==='share' ? 'claimShareUnlock' : 'claimShareReward');const w=await callApi(action,{runnerId:getRunnerId(),routeId:ShareGate.routeId,platform:p,postUrl:v});if(action==='claimShareReward'){Rewards.wallet=w;updateRewardUi(w);}e.textContent='';setRewardModalStatus('<span class="sg-dot"></span> Share verified — GPX unlocked! 🎉',true);const dl=document.getElementById('sg-download-btn');dl.disabled=false;dl.innerHTML='⬇️ Download GPX';dl.dataset.shareUnlocked='true';}catch(x){e.textContent=x.message||'Could not verify this share.';}}
+async function handleVerifyClick(){const p=ShareGate.selectedPlatform,e=document.getElementById('sg-verify-error'),i=document.getElementById('sg-verify-input');if(!p){e.textContent='Pick a platform above first.';return;}const v=i.value.trim();if(!v){e.textContent='Paste your post link first.';return;}if(!isPlausiblePostUrl(p,v)){e.textContent=`That doesn't look like a valid ${SHARE_PLATFORM_META[p].label} post link.`;return;}try{e.textContent='Verifying…';const result=ShareGate.mode==='flyover' ? await callApi('claimFlyoverShare',{runnerId:getRunnerId(),activityId:ShareGate.activityId,platform:p,postUrl:v}) : await callApi('claimShareReward',{runnerId:getRunnerId(),routeId:ShareGate.routeId,platform:p,postUrl:v});if(ShareGate.mode==='flyover'){e.textContent='';setRewardModalStatus('<span class="sg-dot"></span> Share verified — flyover export unlocked! 🎉',true);closeShareGate();window.RunnersHubCreate3D?.refreshGate?.();}else{Rewards.wallet=result?.wallet||result;updateRewardUi(Rewards.wallet);e.textContent='';
+      const dl=document.getElementById('sg-download-btn');dl.disabled=false;
+      if(RELEASE_CONFIG.points?.enabled){
+        // Share first — then the GPX costs points. Share alone no longer unlocks it.
+        setRewardModalStatus('<span class="sg-dot"></span> Share verified! Now spend '+(RELEASE_CONFIG.points.costs?.download ?? 15)+' points to download the GPX.',true);
+        dl.innerHTML='⬇️ Unlock & Download ('+(RELEASE_CONFIG.points.costs?.download ?? 15)+' 🪙)';
+        dl.onclick=()=>unlockAndDownload(ShareGate.routeId,ShareGate.triggerBtn);
+      }else{
+        Rewards.unlocks.add(String(ShareGate.routeId));
+        setRewardModalStatus('<span class="sg-dot"></span> Share verified — GPX unlocked! 🎉',true);
+        dl.innerHTML='⬇️ Download GPX';
+        dl.onclick=null;
+        if(result?.unlocked && RELEASE_CONFIG.download.unlockMode==='share'){closeShareGate();await performGpxDownload(ShareGate.routeId,ShareGate.triggerBtn);}
+      }}}catch(x){e.textContent=x.message||'Could not verify this share.';}}
 async function unlockAndDownload(id,btn){try{const r=await callApi('unlockRoute',{runnerId:getRunnerId(),routeId:id});Rewards.wallet=r.wallet;Rewards.unlocks.add(String(id));updateRewardUi(r.wallet);closeShareGate();await performGpxDownload(id,btn);}catch(e){toast(e.message||'Could not unlock route','err');}}
-function onDownloadGpx(event,btn){event.stopPropagation();const id=btn.dataset.routeId;if(!id)return;if(Rewards.unlocks.has(String(id))){performGpxDownload(id,btn);return;}const mode=window.RUNNERSHUB_CONFIG?.download?.unlockMode||'share';if(mode==='free'){performGpxDownload(id,btn);return;}if(mode==='points'&&Number(Rewards.wallet?.points||0)>=REWARD_DOWNLOAD_COST){unlockAndDownload(id,btn);return;}if(mode==='share_or_points'&&Number(Rewards.wallet?.points||0)>=REWARD_DOWNLOAD_COST){unlockAndDownload(id,btn);return;}openShareGate(id,btn);}
+function onDownloadGpx(event,btn){event.stopPropagation();const id=btn.dataset.routeId;if(!id)return;if(Rewards.unlocks.has(String(id))){performGpxDownload(id,btn);return;}if(RELEASE_CONFIG.download.unlockMode==='free'){performGpxDownload(id,btn);return;}openShareGate(id,btn);}
 async function performGpxDownload(id,btn){const original=btn?btn.innerHTML:null;if(btn){btn.disabled=true;btn.innerHTML='⏳';}try{const res=await callApi('getGpxDownload',{routeId:id,runnerId:getRunnerId()});const chars=atob(res.base64),nums=new Uint8Array(chars.length);for(let i=0;i<chars.length;i++)nums[i]=chars.charCodeAt(i);const blob=new Blob([nums],{type:'application/gpx+xml'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=res.filename||'route.gpx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('GPX downloaded','ok');}catch(e){toast('Download failed: '+e.message,'err');}finally{if(btn){btn.disabled=false;btn.innerHTML=original;}}}
-function setupShareGateListeners(){const o=document.getElementById('share-gate-overlay');document.getElementById('sg-close-btn').addEventListener('click',closeShareGate);o.addEventListener('click',e=>{if(e.target===o)closeShareGate();});document.getElementById('sg-share-reward-btn').addEventListener('click',handleShareRewardClick);document.querySelectorAll('.sg-share-btn').forEach(b=>b.addEventListener('click',()=>handleShareClick(b.dataset.platform)));document.getElementById('sg-verify-btn').addEventListener('click',handleVerifyClick);document.getElementById('sg-verify-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleVerifyClick();}});document.getElementById('sg-download-btn').addEventListener('click',()=>{if(ShareGate.routeId)unlockAndDownload(ShareGate.routeId,ShareGate.triggerBtn);});}
-function setupRewards(){getRunnerId();refreshRewardUnlocks();if(window.RUNNERSHUB_CONFIG?.rewards?.enabled!==false) refreshRewards();const n=document.getElementById('nav-rewards');if(n&&window.RUNNERSHUB_CONFIG?.rewards?.enabled!==false)n.addEventListener('click',()=>switchTab('rewards'));}
+function setupShareGateListeners(){const o=document.getElementById('share-gate-overlay');document.getElementById('sg-close-btn').addEventListener('click',closeShareGate);o.addEventListener('click',e=>{if(e.target===o)closeShareGate();});document.getElementById('sg-share-reward-btn').addEventListener('click',handleShareRewardClick);document.getElementById('sg-points-reward-btn')?.addEventListener('click',()=>{if(ShareGate.routeId)unlockAndDownload(ShareGate.routeId,ShareGate.triggerBtn);});document.querySelectorAll('.sg-share-btn').forEach(b=>b.addEventListener('click',()=>handleShareClick(b.dataset.platform)));document.getElementById('sg-verify-btn').addEventListener('click',handleVerifyClick);document.getElementById('sg-verify-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();handleVerifyClick();}});document.getElementById('sg-download-btn').addEventListener('click',()=>{if(ShareGate.routeId)performGpxDownload(ShareGate.routeId,ShareGate.triggerBtn);});}
+// Points for an interaction are always granted server-side. This just calls the
+// endpoint and reflects the answer in the wallet UI (silently when refused).
+async function awardInteraction(action, routeId, pointsKey){
+  if(!RELEASE_CONFIG.points?.enabled) return;
+  try{
+    const r = await callApi(action, { runnerId: getRunnerId(), routeId });
+    if (r && r.points != null) { Rewards.wallet = r; updateRewardUi(r); }
+    else if (r && typeof r.points === 'number') { Rewards.wallet = r; updateRewardUi(r); }
+    if (r && r.reward && r[pointsKey]) toast('+' + r[pointsKey] + ' points 🪙', 'ok');
+    else if (r && r.wallet) { Rewards.wallet = r.wallet; updateRewardUi(r.wallet); }
+  }catch(_){ /* never block the like/comment itself on a reward failure */ }
+}
+// Keeps the Rewards page honest: every number comes from config.js.
+function renderRewardsCopy(){
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const p = RELEASE_CONFIG.points || {};
+  set('rw-upload-pts',  '+' + (p.earn?.upload?.points ?? 70));
+  set('rw-upload-limit', String(p.earn?.upload?.dailyLimit ?? 2));
+  set('rw-share-pts',   '+' + (p.earn?.share?.points ?? 15));
+  set('rw-share-limit', String(p.earn?.share?.dailyLimit ?? 3));
+  set('rw-like-pts',    '+' + (p.earn?.like?.points ?? 2));
+  set('rw-like-limit',  String(p.earn?.like?.dailyLimit ?? 10));
+  set('rw-comment-pts', '+' + (p.earn?.comment?.points ?? 5));
+  set('rw-comment-limit', String(p.earn?.comment?.dailyLimit ?? 5));
+  set('rw-download-cost', String(p.costs?.download ?? 15));
+  set('rw-download-note-cost', String(p.costs?.download ?? 15));
+  set('rw-flyover-cost',  String(p.costs?.threeDFlyover ?? 40));
+  set('rewards-page-points', String(Rewards.wallet?.points ?? 0));
+}
+function setupRewards(){getRunnerId();refreshRewards();refreshRewardUnlocks();renderRewardsCopy();const enabled=!!RELEASE_CONFIG.points?.enabled;const hint=document.getElementById('upload-reward-hint');if(hint)hint.style.display=enabled?'':'none';document.querySelectorAll('.points-nav,.points-mobile-nav,#nav-rewards').forEach(el=>{el.hidden=!enabled;el.style.display=enabled?'':'none';});document.querySelectorAll('[data-tab="rewards"],[data-mobile-tab="rewards"]').forEach(el=>{el.hidden=!enabled;el.style.display=enabled?'':'none';});const n=document.getElementById('nav-rewards');if(n&&!n.dataset.wired){n.dataset.wired='1';n.addEventListener('click',()=>{if(RELEASE_CONFIG.points?.enabled)switchTab('rewards');});}}
 </script>
 <script>
 /* ─── JS_Detail.html ────────────────────────────────────────────────────────
@@ -3806,6 +4037,9 @@ function renderDetailLeftPanel(route) {
   scroller.innerHTML = `
     <div class="rd-badges">
       ${typeBadge(route.type)}
+      <span class="rd-badge" style="background:rgba(255,255,255,.06);color:var(--text-sec);border:1px solid var(--border);border-radius:999px;padding:3px 9px;font-size:11px;font-weight:700;">
+        ${route.type === 'Trail' ? '🌿 Trail / Dirt' : '🛣️ Paved / Asphalt'}
+      </span>
       ${(route.is_map_art === 'true' || route.is_map_art === true) ? mapArtBadge() : ''}
     </div>
     <h1 class="rd-title">${escHtml(route.route_name)}</h1>
@@ -3837,6 +4071,14 @@ function renderDetailLeftPanel(route) {
         <span class="heart">${liked ? '❤️' : '🤍'}</span><span class="like-count">${likesCnt}</span>
       </button>
       ${hasGpx ? `<button type="button" class="comment-btn download-btn" data-route-id="${escHtml(route.route_id)}">⬇️ Download GPX</button>` : ''}
+      ${(() => {
+        const pts = parsePolylineJson(route.polyline_json);
+        if (pts && pts.length) {
+          const lat = pts[0][0], lon = pts[0][1];
+          return `<a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}" target="_blank" rel="noopener noreferrer" class="comment-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📍 Directions</a>`;
+        }
+        return '';
+      })()}
       <button type="button" class="comment-btn" id="rd-share-btn">🔗 Share</button>
     </div>
 
@@ -3873,6 +4115,20 @@ function shareRoute(route) {
   try {
     url = window.location.origin + window.location.pathname + '#route/' + route.route_id;
   } catch (e) {}
+  const shareTitle = `${route.route_name || 'Run Route'} (${fmtDist(route.distance_km)})`;
+  const shareText = `Check out ${route.route_name} on RunnersHub — ${fmtDist(route.distance_km)}, ↑ ${fmtElev(route.elev_gain)} elevation gain.`;
+
+  if (navigator.share) {
+    navigator.share({ title: shareTitle, text: shareText, url })
+      .catch(err => {
+        if (err.name !== 'AbortError') copyToClipboard(url);
+      });
+  } else {
+    copyToClipboard(url);
+  }
+}
+
+function copyToClipboard(url) {
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(url)
       .then(() => toast('Link copied to clipboard', 'ok'))
@@ -4121,6 +4377,7 @@ async function postDetailComment() {
       el.textContent = newCount;
     });
     updateCachedCommentCount(routeId, newCount);
+    awardInteraction('addCommentReward', routeId, 'commentPoints');
 
   } catch(e) {
     tempEl.remove();
@@ -4228,6 +4485,8 @@ function switchTab(tabName) {
       setTimeout(() => S.uploadState.previewMap.invalidateSize(), 100);
   } else if (tabName === 'discover') {
     setTimeout(() => loadDiscoverTab(), 30);
+  } else if (tabName === 'create3d') {
+    setTimeout(() => window.RunnersHubCreate3D?.mount(), 40);
   }
 
   history.replaceState(null, '', '#' + tabName);
@@ -4248,14 +4507,14 @@ function handleHashChange() {
 
   if (S.activeDetailRouteId) closeRouteDetail({ skipHistory: true });
 
-  const tab = ['home','explore','upload'].includes(hash) ? hash : 'home';
+  const tab = ['home','explore','upload','discover','create3d','rewards','support'].includes(hash) ? hash : 'home';
   if (tab !== S.currentTab) switchTab(tab);
 }
 
 function restoreHashRoute() {
   const hash = window.location.hash.replace('#', '');
   if (hash.startsWith('route/')) return 'explore';
-  return ['home','explore','upload'].includes(hash) ? hash : 'home';
+  return ['home','explore','upload','discover','create3d','rewards','support'].includes(hash) ? hash : 'home';
 }
 
 // ─── GLOBAL SEARCH ───────────────────────────────────────────────────────────
@@ -4302,7 +4561,9 @@ function setupKeyboardShortcuts() {
     if (e.key === '1') switchTab('home');
     if (e.key === '2') switchTab('explore');
     if (e.key === '3') switchTab('upload');
-    if (e.key === '4') switchTab('support');
+    if (e.key === '4') switchTab('discover');
+    if (e.key === '5') switchTab('create3d');
+    if (e.key === '6') switchTab('support');
   });
 }
 
@@ -4397,6 +4658,86 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+</script>
+
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   PHASE 5F — BROWSER 3D FLYOVER PREVIEW
+   This is a dependency-free WebGL-like perspective preview built on Canvas 2D.
+   It uses the route's stored profile/elevation data. Final MP4 rendering is
+   intentionally gated until a supported renderer/codec is available.
+═══════════════════════════════════════════════════════════ */
+(function(){
+  const C=window.RUNNERSHUB_CONFIG?.threeD||{};
+  const state={route:null,profile:[],playing:false,raf:0,start:0,duration:20};
+  const $=id=>document.getElementById(id);
+  const overlay=$('fly3d-overlay'),canvas=$('fly3d-canvas'),ctx=canvas?.getContext('2d');
+  if(!overlay||!canvas||!ctx)return;
+  function safeNum(v,d=0){const n=Number(v);return Number.isFinite(n)?n:d;}
+  function routeColor(type){return String(type).toLowerCase()==='trail'?'#fc5200':'#38bdf8';}
+  function normalizeProfile(route){
+    let p=parseProfileJson(route?.polyline_json);
+    if(p.length>1)return p.map(x=>[safeNum(x[0]),safeNum(x[1]),safeNum(x[2]),safeNum(x[3])]);
+    const pts=parsePolylineJson(route?.polyline_json); const e=parseElevationsJson(route?.polyline_json);
+    return pts.map((x,i)=>[i,e[i]||0,x[0],x[1]]);
+  }
+  function fmtDist(v){const n=safeNum(v);return n?`${n.toFixed(n<10?2:1)} km`:'—';}
+  function fmtDateInput(v){if(!v)return '';const d=new Date(v);return Number.isNaN(d.getTime())?'':d.toISOString().slice(0,16);}
+  function buildStats(){
+    const r=state.route||{}, p=state.profile; const dist=safeNum(r.distance_km,p.at(-1)?.[0]||0); const elev=safeNum(r.elev_gain,0);
+    return {distance:fmtDist(dist),elevation:elev?`↑ ${Math.round(elev)} m`:'—',difficulty:r.level||'—',time:$('fly3d-time').value||'00:00:00',pace:$('fly3d-pace').value||'—',date:$('fly3d-date').value?new Date($('fly3d-date').value).toLocaleString():(r.timestamp?new Date(r.timestamp).toLocaleString():'—')};
+  }
+  function drawTerrain(progress=0){
+    const W=canvas.width,H=canvas.height; ctx.clearRect(0,0,W,H);
+    const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#07111e');g.addColorStop(.48,'#0b1c2e');g.addColorStop(1,'#06101a');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    if(state.profile.length<2){ctx.fillStyle='#94a3b8';ctx.font='700 18px system-ui';ctx.textAlign='center';ctx.fillText('No elevation profile available',W/2,H/2);return;}
+    const p=state.profile; const elevs=p.map(x=>x[1]); const min=Math.min(...elevs),max=Math.max(...elevs); const span=Math.max(1,max-min);
+    const visible=Math.max(2,Math.floor((p.length-1)*Math.max(progress,.02))+1); const start=Math.max(0,visible-70); const arr=p.slice(start,visible);
+    const baseY=H*.70, horizon=H*.30;
+    // Stylized perspective terrain bands derived from route elevation/profile.
+    for(let band=0;band<9;band++){
+      ctx.beginPath();
+      for(let i=0;i<arr.length;i++){
+        const x=(i/Math.max(1,arr.length-1))*W;
+        const norm=(arr[i][1]-min)/span;
+        const y=baseY - norm*H*.30 + band*H*.035 + Math.sin(i*.55+band)*7;
+        if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+      }
+      ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.closePath();
+      ctx.fillStyle=`rgba(${24+band*4},${43+band*4},${61+band*5},${.20+band*.035})`;ctx.fill();
+    }
+    // Grid / contour lines.
+    ctx.strokeStyle='rgba(148,163,184,.10)';ctx.lineWidth=1;
+    for(let y=horizon;y<baseY+120;y+=46){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y+70);ctx.stroke();}
+    // Route projected over terrain.
+    const color=routeColor(state.route.type);ctx.strokeStyle='rgba(255,255,255,.92)';ctx.lineWidth=11;ctx.lineJoin='round';ctx.lineCap='round';ctx.beginPath();
+    arr.forEach((pt,i)=>{const x=(i/Math.max(1,arr.length-1))*W;const norm=(pt[1]-min)/span;const y=baseY-norm*H*.30-8; if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+    ctx.strokeStyle=color;ctx.lineWidth=6;ctx.beginPath();arr.forEach((pt,i)=>{const x=(i/Math.max(1,arr.length-1))*W;const norm=(pt[1]-min)/span;const y=baseY-norm*H*.30-8;if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();
+    // Moving runner marker.
+    const last=arr[arr.length-1], lx=W*.78, ln=(last[1]-min)/span, ly=baseY-ln*H*.30-8;ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=18;ctx.beginPath();ctx.arc(lx,ly,8,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+    // Outro.
+    if(progress>.92){const a=Math.min(1,(progress-.92)/.08);ctx.fillStyle=`rgba(3,8,18,${a*.82})`;ctx.fillRect(0,0,W,H);const st=buildStats();ctx.textAlign='left';ctx.fillStyle='#fff';ctx.font='900 16px system-ui';ctx.fillText('RUN COMPLETE',W*.10,H*.27);ctx.font='900 46px system-ui';ctx.fillText(st.distance,W*.10,H*.36);ctx.font='700 19px system-ui';let y=H*.42;[['TIME',st.time],['PACE',st.pace],['ELEVATION',st.elevation],['DIFFICULTY',st.difficulty],['DATE',st.date]].forEach(([k,v])=>{const show=$(`fly3d-stat-grid`)?.querySelector(`[data-stat="${k.toLowerCase().replace('elevation','elevation').replace('difficulty','difficulty').replace('date','date').replace('time','time').replace('pace','pace')}"]`)?.checked; if(show){ctx.fillStyle='#94a3b8';ctx.font='700 10px system-ui';ctx.fillText(k,W*.10,y);ctx.fillStyle='#f8fafc';ctx.font='800 18px system-ui';ctx.fillText(v,W*.10,y+22);y+=52;}});ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='800 10px system-ui';ctx.fillText('CUSTOM PREVIEW • RUNNERSHUB',W*.10,H*.88);}
+    ctx.textAlign='left';ctx.fillStyle='rgba(255,255,255,.82)';ctx.font='900 12px system-ui';ctx.fillText(state.route.route_name||'Route',W*.07,H*.09);ctx.fillStyle='rgba(255,255,255,.55)';ctx.font='700 9px system-ui';ctx.fillText(`${state.route.type||'Route'} • ${fmtDist(state.route.distance_km)}`,W*.07,H*.12);
+  }
+  function stop(){state.playing=false;cancelAnimationFrame(state.raf);$('fly3d-play').classList.remove('hidden');$('fly3d-play').textContent='▶';}
+  function play(){stop();state.playing=true;$('fly3d-play').classList.add('hidden');state.start=performance.now();const tick=now=>{if(!state.playing)return;const p=Math.min(1,(now-state.start)/(state.duration*1000));drawTerrain(p);if(p<1)state.raf=requestAnimationFrame(tick);else stop();};state.raf=requestAnimationFrame(tick);}
+  function open(route){if(!C.enabled)return;state.route=normalizeDisplayRoute(route);state.profile=normalizeProfile(route);state.duration=safeNum(C.durationSeconds,20);$('fly3d-type-chip').textContent=(route.type||'Route').toUpperCase()+' • 3D';$('fly3d-distance-chip').textContent=fmtDist(route.distance_km);$('fly3d-time').value='00:00:00';$('fly3d-pace').value='—';$('fly3d-date').value=fmtDateInput(route.timestamp);$('fly3d-status').textContent='Preview ready — points have not been charged.';$('fly3d-status').className='fly3d-status ok';const canGenerate=!!C.exportEnabled&&!!C.pointsCost&&!!window.RUNNERSHUB_CONFIG?.rewards?.enabled;$('fly3d-generate').disabled=!canGenerate;$('fly3d-generate').title=canGenerate?'':'Enable the points system in config.js before final export can be charged.';overlay.classList.add('open');overlay.setAttribute('aria-hidden','false');stop();drawTerrain(0.05);}
+  function close(){stop();overlay.classList.remove('open');overlay.setAttribute('aria-hidden','true');}
+  document.addEventListener('click',e=>{const b=e.target.closest('.rd-3d-btn');if(!b)return;const id=b.dataset.routeId;const r=findRouteInCache(id);if(r)open(r);else callApi('getRouteById',{routeId:id}).then(open).catch(err=>toast('3D preview failed: '+err.message,'err'));});
+  $('fly3d-close').addEventListener('click',close);$('fly3d-play').addEventListener('click',play);$('fly3d-replay').addEventListener('click',play);overlay.addEventListener('click',e=>{if(e.target===overlay)close();});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.classList.contains('open'))close();});
+  document.querySelectorAll('#fly3d-stat-grid input').forEach(i=>i.addEventListener('change',()=>{if(!state.playing)drawTerrain(1);}));
+  ['fly3d-time','fly3d-pace','fly3d-date'].forEach(id=>$(id).addEventListener('input',()=>{if(!state.playing)drawTerrain(1);}));
+  $('fly3d-generate').addEventListener('click',async()=>{
+    if(!state.route)return;
+    const C3=window.RUNNERSHUB_CONFIG?.threeD||{};
+    if(!window.RUNNERSHUB_CONFIG?.rewards?.enabled){$('fly3d-status').textContent='Points are disabled in the current release. Preview remains available for free.';$('fly3d-status').className='fly3d-status';return;}
+    // Browser export is intentionally conservative: do not deduct points unless a supported renderer is available.
+    $('fly3d-status').textContent='Checking final video renderer…';$('fly3d-status').className='fly3d-status';
+    try{const res=await callApi('prepare3dFlyover',{runnerId:getRunnerId(),routeId:state.route.route_id,pointsCost:Number(C3.pointsCost||40)});if(res?.ready!==true)throw new Error(res?.message||'Final MP4 renderer is not configured yet. No points were charged.');$('fly3d-status').textContent='Renderer ready. Starting generation…';$('fly3d-status').className='fly3d-status ok';}catch(err){$('fly3d-status').textContent=err.message||'Renderer unavailable. No points were charged.';$('fly3d-status').className='fly3d-status err';}
+  });
+  window.RunnersHub3D={open,close};
+})();
 </script>
 
 </body>
@@ -4710,4 +5051,116 @@ if (document.readyState === 'loading') {
     box-shadow:0 8px 24px rgba(0,0,0,.22);
   }
 }
+
+/* PHASE 5F — 3D FLYOVER */
+.fly3d-overlay{position:fixed;inset:0;background:rgba(3,8,18,.86);backdrop-filter:blur(10px);z-index:12000;display:none;align-items:center;justify-content:center;padding:18px}
+.fly3d-overlay.open{display:flex}.fly3d-modal{width:min(1180px,100%);height:min(92vh,900px);background:#0b1424;border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow-lg);display:grid;grid-template-columns:minmax(0,1fr) 330px;overflow:hidden}.fly3d-preview{position:relative;min-width:0;background:#050b14;display:flex;align-items:center;justify-content:center;overflow:hidden}#fly3d-canvas{width:auto;height:100%;max-width:100%;aspect-ratio:9/16;display:block;background:#07111e}.fly3d-preview-hud{position:absolute;left:18px;right:18px;top:14px;display:flex;justify-content:space-between;pointer-events:none}.fly3d-chip{padding:7px 10px;border-radius:999px;background:rgba(7,17,30,.72);border:1px solid rgba(255,255,255,.12);font-size:10px;font-weight:850;color:#fff}.fly3d-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;background:rgba(15,23,42,.76);border:1px solid rgba(255,255,255,.22);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center}.fly3d-play.hidden{display:none}.fly3d-watermark{position:absolute;bottom:14px;right:16px;color:rgba(255,255,255,.55);font-size:10px;font-weight:900;letter-spacing:.08em}.fly3d-side{padding:20px;overflow:auto;background:#0f1a2b;border-left:1px solid var(--border)}.fly3d-side h2{font-size:20px;margin-bottom:5px}.fly3d-side .sub{font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:18px}.fly3d-close{float:right;width:34px;height:34px;border-radius:10px;background:var(--bg-700);color:#fff;font-size:18px}.fly3d-section{padding:14px 0;border-top:1px solid rgba(148,163,184,.12)}.fly3d-section-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);margin-bottom:10px}.fly3d-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.fly3d-stat-row{display:flex;align-items:center;padding:9px 10px;border-radius:10px;background:#111f34;border:1px solid rgba(148,163,184,.10);font-size:11px}.fly3d-stat-row label{display:flex;gap:8px;align-items:center;color:var(--text-sec)}.fly3d-stat-row input{width:15px;height:15px;accent-color:var(--trail)}.fly3d-custom{display:grid;gap:8px}.fly3d-field{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}.fly3d-field label{font-size:11px;color:var(--text-muted)}.fly3d-field input{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--border);background:#0b1424;color:#fff;font-size:12px}.fly3d-cost{display:flex;align-items:center;justify-content:space-between;padding:11px 12px;border-radius:12px;background:var(--amber-bg);border:1px solid rgba(245,158,11,.22);margin-bottom:10px}.fly3d-cost strong{color:#fbbf24}.fly3d-note,.fly3d-export-warning{font-size:10px;line-height:1.5;color:var(--text-dim);margin-top:8px}.fly3d-actions{display:grid;gap:8px}.fly3d-actions .btn{width:100%;min-height:44px}.fly3d-actions .btn[disabled]{opacity:.45}.fly3d-status{font-size:11px;line-height:1.45;color:var(--text-muted);min-height:18px;margin-top:8px}.fly3d-status.ok{color:#34d399}.fly3d-status.err{color:#fb7185}.fly3d-export-warning{padding:10px 11px;border-radius:10px;background:#3a1d0a;border:1px solid rgba(251,146,60,.2);color:#fdba74}.rd-3d-btn{border-color:rgba(252,82,0,.35)!important;color:var(--trail)!important}
+@media(max-width:820px){.fly3d-overlay{padding:0}.fly3d-modal{width:100%;height:100%;border-radius:0;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.fly3d-preview{min-height:48vh}.fly3d-side{max-height:52vh;border-left:0;border-top:1px solid var(--border);padding:14px}.fly3d-actions{grid-template-columns:1fr 1fr}.fly3d-actions .btn:last-child{grid-column:1/-1}}
 </style>
+
+<style>
+/* PHASE 5F REVISION — CREATE 3D */
+.create3d-page{max-width:1380px;margin:0 auto;padding:34px 22px 64px}
+.create3d-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:20px}
+.create3d-title{font-size:clamp(28px,4vw,48px);line-height:1.02;letter-spacing:-1.5px;margin:8px 0 10px;max-width:800px}
+.create3d-sub{max-width:760px;color:var(--text-muted);line-height:1.65;font-size:14px}.create3d-badge{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:12px 15px;border:1px solid rgba(252,82,0,.25);border-radius:14px;background:linear-gradient(135deg,rgba(252,82,0,.11),rgba(56,189,248,.06));white-space:nowrap}.create3d-badge b{color:#fbbf24}.create3d-connect,.create3d-import{border:1px solid var(--border);border-radius:20px;background:linear-gradient(145deg,#101d31,#0c1626);box-shadow:var(--shadow);padding:20px;display:flex;align-items:center;gap:16px;margin-bottom:16px}.create3d-connect-icon{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:rgba(252,82,0,.12);color:#fc5200;font-size:25px}.create3d-connect-copy{flex:1}.create3d-connect-copy h2,.create3d-import h2,.create3d-panel h2{font-size:18px;margin:0 0 5px}.create3d-connect-copy p,.create3d-import p{font-size:12px;color:var(--text-muted);line-height:1.5}.strava-connect-btn{border-color:#fc5200;color:#ff8a5c;font-weight:850}.create3d-import{display:block}.create3d-import-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}.create3d-kicker{font-size:9px;letter-spacing:.12em;font-weight:950;color:#fc5200}.strava-user-pill,.create3d-live-pill{padding:7px 10px;border-radius:999px;background:rgba(16,185,129,.10);border:1px solid rgba(16,185,129,.25);color:#34d399;font-size:10px;font-weight:850}.create3d-input-row{display:flex;gap:10px}.create3d-url{flex:1;min-width:0;height:46px;padding:0 14px;border-radius:12px;border:1px solid var(--border);background:#081220;color:#fff}.create3d-url:focus{border-color:#fc5200;box-shadow:0 0 0 3px rgba(252,82,0,.09)}.create3d-status{min-height:18px;margin-top:8px;font-size:11px;color:var(--text-muted)}.create3d-status.ok{color:#34d399}.create3d-status.err{color:#fb7185}.create3d-workspace{display:grid;grid-template-columns:minmax(0,1fr) 350px;gap:16px;min-height:680px}.create3d-map-shell{position:relative;min-height:680px;border-radius:22px;overflow:hidden;border:1px solid var(--border);background:#06101d;box-shadow:var(--shadow-lg)}#create3d-map{position:absolute;inset:0}.create3d-map-overlay{position:absolute;left:16px;right:16px;top:16px;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:10px;align-items:flex-start;pointer-events:none;z-index:3;max-width:calc(100% - 200px)}.create3d-map-overlay>div{padding:10px 12px;border-radius:13px;background:rgba(6,16,29,.78);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(10px)}#create3d-activity-name{display:block;font-weight:900;color:#fff;font-size:13px}.create3d-map-overlay small{display:block;color:#aab8ca;font-size:10px;margin-top:3px}.create3d-panel{border:1px solid var(--border);border-radius:22px;background:#0d1829;box-shadow:var(--shadow);padding:18px;overflow:auto}.create3d-panel-top{display:flex;justify-content:space-between;align-items:center;gap:12px}.create3d-stat-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0}.c3-stat{padding:11px 12px;border-radius:13px;background:#091322;border:1px solid rgba(148,163,184,.11)}.c3-stat b{display:block;font-size:14px}.c3-stat span{font-size:9px;color:#718096;text-transform:uppercase;letter-spacing:.08em}.create3d-section{border-top:1px solid rgba(148,163,184,.12);padding-top:15px;margin-top:15px}.create3d-section h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:10px}.create3d-checks{display:grid;grid-template-columns:1fr 1fr;gap:7px}.create3d-checks label{padding:9px 10px;border-radius:10px;background:#111f34;border:1px solid rgba(148,163,184,.10);font-size:10px;color:#cbd5e1}.create3d-checks input{accent-color:#fc5200;margin-right:6px}.create3d-fields{display:grid;gap:8px}.create3d-fields label{font-size:10px;color:#94a3b8}.create3d-fields input{display:block;width:100%;margin-top:5px;padding:9px 10px;border-radius:10px;border:1px solid var(--border);background:#091322;color:#fff}.create3d-video-card{display:grid;gap:7px}.video-spec{display:flex;justify-content:space-between;gap:10px;padding:10px 11px;border-radius:10px;background:#111f34;font-size:10px;color:#94a3b8}.video-spec b{color:#f8fafc}.create3d-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}.create3d-actions .btn{min-height:46px}.create3d-gate{font-size:10px;line-height:1.5;color:#94a3b8;margin-top:10px}.create3d-finish-overlay{position:absolute;inset:0;z-index:5;display:grid;place-items:center;background:radial-gradient(120% 80% at 50% 38%,rgba(3,8,18,.34),rgba(3,8,18,.74));backdrop-filter:blur(7px)}.create3d-finish-overlay[hidden]{display:none!important}.maplibregl-ctrl-group{background:#0d1829!important;border:1px solid rgba(255,255,255,.12)!important}.maplibregl-ctrl-group button{filter:invert(1)}
+.create3d-runner-marker{width:22px;height:22px;border-radius:50%;background:#fc5200;border:3px solid #fff;box-shadow:0 0 0 5px rgba(252,82,0,.22),0 8px 20px rgba(0,0,0,.45);display:grid;place-items:center}.create3d-runner-marker span{font-size:0}.create3d-runner-marker:after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#fff}.create3d-map-shell.previewing .create3d-live-pill{background:rgba(252,82,0,.14);border-color:rgba(252,82,0,.35);color:#ff9a6b}.create3d-map-shell.previewing .create3d-runner-marker{animation:c3runnerpulse 1.2s ease-in-out infinite}@keyframes c3runnerpulse{0%,100%{box-shadow:0 0 0 4px rgba(252,82,0,.20),0 8px 20px rgba(0,0,0,.45)}50%{box-shadow:0 0 0 10px rgba(252,82,0,.04),0 8px 20px rgba(0,0,0,.45)}}
+.create3d-map-column{min-width:0;display:flex;flex-direction:column;gap:10px}.create3d-preview-controls{position:relative;left:auto;bottom:auto;z-index:2;display:grid;grid-template-columns:auto minmax(120px,1fr) auto auto;align-items:center;gap:9px;padding:9px 10px;border:1px solid rgba(255,255,255,.12);border-radius:13px;background:#0d1829;box-shadow:0 10px 30px rgba(0,0,0,.22)}.c3-preview-buttons{display:flex;gap:6px}
+.c3-playback-btn{border:1px solid rgba(255,255,255,.10);border-radius:9px;padding:8px 11px;background:#111f34;color:#dbe5f1;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}.c3-playback-btn:hover:not(:disabled){background:#1a2b45;color:#fff}.c3-playback-btn:disabled{opacity:.45;cursor:not-allowed}.c3-preview-scrubber{width:100%;accent-color:#fc5200;cursor:pointer}.c3-preview-scrubber:disabled{opacity:.45;cursor:not-allowed}.c3-preview-time,.c3-preview-progress{min-width:58px;text-align:center;color:#94a3b8;font-size:10px;font-weight:900;font-variant-numeric:tabular-nums}.create3d-marker-options{display:grid;grid-template-columns:1fr 1fr;gap:7px}.c3-marker-option{min-height:38px;border:1px solid rgba(148,163,184,.14);border-radius:10px;background:#111f34;color:#cbd5e1;font-size:10px;font-weight:850;cursor:pointer}.c3-marker-option.active{border-color:rgba(252,82,0,.55);background:rgba(252,82,0,.12);color:#fff}.c3-slider-group{display:flex;align-items:center;gap:8px;margin-top:5px}.c3-slider{flex:1;height:5px;border-radius:999px;appearance:none;background:linear-gradient(90deg,#162338,#1e293b);outline:none;accent-color:#fc5200;cursor:pointer}.c3-slider::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:#fc5200;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(252,82,0,.3)}.c3-slider::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:#fc5200;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(252,82,0,.3)}.c3-slider-val{min-width:35px;text-align:right;color:#cbd5e1;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}.create3d-elevation-status{font-size:10px;line-height:1.5;color:#94a3b8;padding:10px 11px;border-radius:10px;background:#091322;border:1px solid rgba(148,163,184,.11)}.create3d-elevation-status.ok{color:#34d399}.create3d-elevation-status.warn{color:#fbbf24}.create3d-elevation-status.err{color:#fb7185}.create3d-runner-marker.runner-mode{width:30px;height:30px;background:rgba(6,16,29,.92);border:2px solid #fff;border-radius:50%;font-size:17px;color:#fff}.create3d-runner-marker.runner-mode:after{display:none}.create3d-runner-marker.runner-mode span{font-size:17px;line-height:1}.create3d-runner-marker{z-index:50!important;display:grid!important;visibility:visible!important;opacity:1!important;pointer-events:none!important;position:absolute}
+@media(max-width:700px){.create3d-preview-controls{grid-template-columns:auto minmax(0,1fr) auto;padding:8px}.c3-preview-buttons{gap:5px}.c3-playback-btn{padding:8px 9px}.c3-preview-time{display:none}.create3d-marker-options{grid-template-columns:1fr 1fr}}
+
+.create3d-map-toolbar{position:absolute;right:16px;top:16px;z-index:8;display:flex;gap:5px;padding:4px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(6,16,29,.82);backdrop-filter:blur(12px);box-shadow:0 10px 30px rgba(0,0,0,.22)}
+.c3-map-mode{border:0;border-radius:9px;padding:8px 11px;background:transparent;color:#aab8ca;font-size:10px;font-weight:850;cursor:pointer}.c3-map-mode:hover{color:#fff;background:rgba(255,255,255,.07)}.c3-map-mode.active{background:#fc5200;color:#fff;box-shadow:0 3px 12px rgba(252,82,0,.25)}
+.create3d-loading-overlay{position:absolute;inset:0;z-index:7;display:grid;place-items:center;background:rgba(3,8,18,.76);backdrop-filter:blur(6px);transition:opacity .35s ease}.create3d-loading-overlay.hidden{opacity:0;pointer-events:none}.c3-loading-card{width:min(430px,calc(100% - 32px));padding:24px;border-radius:20px;background:rgba(8,18,32,.96);border:1px solid rgba(255,255,255,.13);box-shadow:0 24px 80px rgba(0,0,0,.5)}.c3-loading-kicker{font-size:9px;letter-spacing:.14em;font-weight:950;color:#fc5200}.c3-loading-title{margin-top:8px;font-size:18px;font-weight:900;color:#fff}.c3-progress-track{height:7px;margin-top:18px;background:#162338;border-radius:999px;overflow:hidden}.c3-progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#fc5200,#ff9a6b);transition:width .45s ease}.c3-progress-meta{display:flex;justify-content:space-between;margin-top:7px;font-size:10px;color:#94a3b8}.c3-progress-meta b{color:#fff;font-variant-numeric:tabular-nums}.c3-loading-steps{display:grid;gap:7px;margin-top:18px;font-size:10px;color:#718096}.c3-loading-steps div.done{color:#34d399}.c3-loading-steps div.current{color:#fff}.c3-loading-steps div.done::first-letter{color:#34d399}@media(max-width:700px){.create3d-map-toolbar{right:10px;top:10px}.c3-map-mode{padding:8px 9px}.create3d-loading-overlay{align-items:end;padding-bottom:18px}.c3-loading-card{width:calc(100% - 20px);padding:18px;border-radius:16px}.c3-loading-title{font-size:16px}}
+.create3d-fallback-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;color:#718096;font-size:10px}.c3-file-label{position:relative;overflow:hidden}.create3d-connect.optional{opacity:.94}.create3d-connect.optional .create3d-connect-copy h2 span{font-size:9px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-left:6px}.c3-source-badge{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:800;background:rgba(56,189,248,.10);color:#7dd3fc;border:1px solid rgba(56,189,248,.2)}
+@media(max-width:520px){.create3d-fallback-row{align-items:stretch;flex-direction:column}.create3d-fallback-row .btn{width:100%;justify-content:center}}
+@media(max-width:980px){.create3d-head{align-items:flex-start;flex-direction:column}.create3d-workspace{grid-template-columns:1fr}.create3d-map-shell{min-height:58vh}.create3d-panel{min-height:0}}
+@media(max-width:700px){.create3d-page{padding:20px 12px 42px}.create3d-title{font-size:30px}.create3d-connect{align-items:flex-start;flex-wrap:wrap}.create3d-connect-copy{min-width:calc(100% - 64px)}.strava-connect-btn{width:100%}.create3d-import-top{align-items:flex-start;flex-direction:column}.create3d-input-row{flex-direction:column}.create3d-input-row .btn{width:100%;min-height:46px}.create3d-workspace{gap:10px}.create3d-map-shell{min-height:62vh;border-radius:16px}.create3d-panel{border-radius:16px;padding:14px}.create3d-actions{grid-template-columns:1fr}.create3d-checks{grid-template-columns:1fr 1fr}.create3d-badge{white-space:normal}.create3d-map-overlay{left:10px;right:10px;top:10px;max-width:calc(100% - 170px)}.finish-hero strong{font-size:44px}.finish-card{padding:20px}}
+.c3-error-dialog{position:fixed;bottom:16px;right:16px;z-index:10000;max-width:380px;background:rgba(15,23,42,.98);border:1px solid rgba(251,113,133,.35);border-radius:14px;padding:16px;box-shadow:0 16px 48px rgba(0,0,0,.6);backdrop-filter:blur(12px)}.c3-error-dialog.hidden{display:none}.c3-error-dialog.success{border-color:rgba(52,211,153,.35);background:rgba(5,46,22,.9)}.c3-error-icon{font-size:20px;margin-bottom:8px}.c3-error-title{font-size:13px;font-weight:700;color:#fff;margin-bottom:6px}.c3-error-msg{font-size:11px;color:#cbd5e1;line-height:1.4;margin-bottom:10px}.c3-error-actions{display:flex;gap:8px}.c3-error-btn{padding:7px 12px;border-radius:8px;border:none;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}.c3-error-retry{background:#fc5200;color:#fff}.c3-error-retry:hover{background:#ff7a3a}.c3-error-close{background:rgba(148,163,184,.14);color:#cbd5e1}.c3-error-close:hover{background:rgba(148,163,184,.25)}.c3-perf-stats{position:fixed;bottom:16px;left:16px;z-index:9999;font-size:9px;color:#94a3b8;background:rgba(15,23,42,.85);padding:10px 12px;border-radius:8px;border:1px solid rgba(148,163,184,.15);font-variant-numeric:tabular-nums;max-width:200px;font-family:monospace}.c3-perf-stats.hidden{display:none}
+</style>
+
+<script>
+// Ensure MapLibre CSS is fully loaded before JS initializes
+window.__MAP_CSS_READY__ = new Promise((resolve) => {
+  const checkCss = () => {
+    if (document.readyState === 'loading') {
+      setTimeout(checkCss, 50);
+      return;
+    }
+    for (let sheet of document.styleSheets) {
+      if (sheet.href?.includes('maplibre-gl')) {
+        resolve();
+        return;
+      }
+    }
+    setTimeout(checkCss, 50);
+  };
+  checkCss();
+});
+
+// Global error/message handler
+window.__C3_ERRORS__ = [];
+window.showC3Error = (title, msg, retry = null) => {
+  const dialog = document.getElementById('c3-error-dialog');
+  if (!dialog) return;
+  document.getElementById('c3-error-icon').textContent = '⚠️';
+  document.getElementById('c3-error-title').textContent = title;
+  document.getElementById('c3-error-msg').textContent = msg;
+  const retryBtn = document.getElementById('c3-error-retry');
+  const closeBtn = document.getElementById('c3-error-close');
+  dialog.classList.remove('hidden', 'success');
+  if (retry) {
+    retryBtn.style.display = 'block';
+    window.__C3_RETRY_CALLBACK__ = retry;
+  } else {
+    retryBtn.style.display = 'none';
+    window.__C3_RETRY_CALLBACK__ = null;
+  }
+  closeBtn.onclick = () => dialog.classList.add('hidden');
+  window.__C3_ERRORS__.push({time: Date.now(), title, msg});
+};
+window.showC3Success = (msg) => {
+  const dialog = document.getElementById('c3-error-dialog');
+  if (!dialog) return;
+  document.getElementById('c3-error-icon').textContent = '✓';
+  document.getElementById('c3-error-title').textContent = 'Success';
+  document.getElementById('c3-error-msg').textContent = msg;
+  document.getElementById('c3-error-retry').style.display = 'none';
+  dialog.classList.add('success');
+  dialog.classList.remove('hidden');
+  setTimeout(() => dialog.classList.add('hidden'), 4000);
+};
+
+// Performance monitoring
+window.__PERF__ = {start: performance.now()};
+window.updatePerfStats = (step, label) => {
+  if (!window.__PERF__.showStats) return;
+  const now = performance.now();
+  window.__PERF__[step] = {time: now, label: label};
+  const stats = document.getElementById('c3-perf-stats');
+  if (stats) {
+    let html = 'LOAD TIMES:<br>';
+    Object.entries(window.__PERF__).forEach(([k, v]) => {
+      if (k !== 'start' && k !== 'showStats' && v.time !== undefined) {
+        const elapsed = Math.round(v.time - window.__PERF__.start);
+        html += `${v.label}: ${elapsed}ms<br>`;
+      }
+    });
+    stats.innerHTML = html;
+  }
+};
+</script>
+
+<script type="module">
+  await window.__MAP_CSS_READY__;
+  import('./3dflyover/3dflyover.js?v=23');
+</script>
+<script>
+if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('[PWA] ServiceWorker registered with scope:', reg.scope))
+      .catch(err => console.warn('[PWA] ServiceWorker registration failed:', err));
+  });
+}
+</script>

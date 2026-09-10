@@ -4,6 +4,7 @@
   "private": true,
   "description": "RunnersHub — discover and share trail and road running routes, powered by Google Sheets + Drive.",
   "scripts": {
+    "start": "node server.js",
     "dev": "vercel dev"
   },
   "dependencies": {

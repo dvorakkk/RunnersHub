@@ -1,0 +1,122 @@
+.create3d-page .create3d-map-shell{isolation:isolate}.create3d-page .create3d-runner-marker{will-change:transform,left,top}.create3d-page .create3d-preview-controls{touch-action:pan-y}
+/* Animated running-figure marker */
+.create3d-runner-marker.runner-mode{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 50% 38%,#ff8a3c,#e64000 72%);border:3px solid #fff;box-shadow:0 0 0 5px rgba(252,82,0,.22),0 8px 20px rgba(0,0,0,.45);display:grid;place-items:center;overflow:hidden}
+.create3d-runner-marker.runner-mode span{display:none}
+.create3d-runner-marker:not(.runner-mode):after{content:"";position:absolute;width:6px;height:6px;border-radius:50%;background:#fff}
+.c3-runner-svg{width:30px;height:30px;display:block}
+.c3-runner-svg .c3-head{fill:#fff;stroke:#ffd9a8;stroke-width:1}
+.c3-runner-svg .c3-torso{fill:#ffd9a8}
+.c3-runner-svg .c3-arm{stroke:#ffb347;fill:none;stroke-width:6;stroke-linecap:round}
+.c3-runner-svg .c3-leg{stroke:#ffd9a8;fill:none;stroke-width:7;stroke-linecap:round}
+.c3-runner-svg .c3-shadow{fill:rgba(0,0,0,.30)}
+.c3-runner-svg .c3-arm-l{transform-box:view-box;transform-origin:27px 24px;transform:rotate(14deg)}
+.c3-runner-svg .c3-arm-r{transform-box:view-box;transform-origin:37px 24px;transform:rotate(-14deg)}
+.c3-runner-svg .c3-leg-l{transform-box:view-box;transform-origin:29px 38px;transform:rotate(-12deg)}
+.c3-runner-svg .c3-leg-r{transform-box:view-box;transform-origin:35px 38px;transform:rotate(12deg)}
+.c3-runner-svg .c3-figure{transform-box:view-box;transform-origin:32px 55px}
+.create3d-runner-marker.c3-running .c3-arm-l{animation:c3armL .38s linear infinite alternate}
+.create3d-runner-marker.c3-running .c3-arm-r{animation:c3armR .38s linear infinite alternate}
+.create3d-runner-marker.c3-running .c3-leg-l{animation:c3legL .38s linear infinite alternate}
+.create3d-runner-marker.c3-running .c3-leg-r{animation:c3legR .38s linear infinite alternate}
+.create3d-runner-marker.c3-running .c3-figure{animation:c3bob .19s ease-in-out infinite alternate}
+.create3d-runner-marker.c3-running .c3-shadow{animation:c3shadow .19s ease-in-out infinite alternate}
+@keyframes c3armL{from{transform:rotate(26deg)}to{transform:rotate(-26deg)}}
+@keyframes c3armR{from{transform:rotate(-26deg)}to{transform:rotate(26deg)}}
+@keyframes c3legL{from{transform:rotate(-22deg)}to{transform:rotate(22deg)}}
+@keyframes c3legR{from{transform:rotate(22deg)}to{transform:rotate(-22deg)}}
+@keyframes c3bob{from{transform:translateY(1.6px)}to{transform:translateY(-1.6px)}}
+@keyframes c3shadow{from{transform:scale(1)}to{transform:scale(.8)}}
+@media (prefers-reduced-motion:reduce){.create3d-runner-marker.c3-running .c3-arm,.create3d-runner-marker.c3-running .c3-leg,.create3d-runner-marker.c3-running .c3-figure,.create3d-runner-marker.c3-running .c3-shadow{animation:none}}
+/* Hide map UI chrome while recording the preview to a test video */
+.create3d-map-shell.recording .create3d-map-toolbar,.create3d-map-shell.recording .create3d-preview-controls,.create3d-map-shell.recording .create3d-live-pill,.create3d-map-shell.recording .create3d-finish-overlay,.create3d-map-shell.recording .create3d-runner-marker{visibility:hidden!important}
+.c3-download-link{color:#ffd9a8;font-weight:800;text-decoration:underline}
+
+/* Route line / running marker colour options — labelled pills (a plain colour
+   circle with text inside overflowed and neighbouring swatches overlapped, so
+   clicks landed on the wrong option). */
+.create3d-line-colors{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.c3-color-option{display:flex;align-items:center;justify-content:center;gap:7px;min-height:38px;padding:0 10px;border:1px solid rgba(148,163,184,.14);border-radius:10px;background:#111f34;color:#cbd5e1;font-size:10px;font-weight:850;cursor:pointer;white-space:nowrap}
+.c3-color-option i{width:13px;height:13px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 2px rgba(255,255,255,.16)}
+.c3-color-option:hover{background:#1a2b45;color:#fff}
+.c3-color-option.active{border-color:rgba(252,82,0,.55);background:rgba(252,82,0,.12);color:#fff}
+
+/* GPX / ZIP dropzone + activity picker (free, offline import path) */
+.c3-dropzone{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:16px 14px;border:1.5px dashed rgba(148,163,184,.32);border-radius:13px;background:rgba(9,19,34,.55);transition:border-color .15s,background .15s}
+.c3-dropzone b{font-size:12px;color:#e2e8f0;font-weight:850}
+.c3-dropzone span{font-size:10px;color:#94a3b8;line-height:1.5}
+.c3-dropzone small{font-size:9px;color:#64748b;line-height:1.5;margin-top:2px}
+.c3-dropzone .c3-file-label{margin-top:4px}
+.c3-dropzone.dragover{border-color:rgba(56,189,248,.75);background:rgba(56,189,248,.09)}
+.c3-gpx-list{display:flex;flex-direction:column;gap:6px}
+.c3-gpx-list:empty{display:none}
+.c3-gpx-head{font-size:10px;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-top:4px}
+.c3-gpx-item{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:38px;padding:0 11px;border:1px solid rgba(148,163,184,.14);border-radius:10px;background:#111f34;color:#cbd5e1;font-size:10px;font-weight:800;cursor:pointer;text-align:left}
+.c3-gpx-item:hover{background:#1a2b45;color:#fff}
+.c3-gpx-item b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.c3-gpx-item span{flex:0 0 auto;color:#64748b;font-size:9px;font-weight:700}
+
+/* ── Map chrome layout fixes ───────────────────────────────────────────────
+   1. Stray dot in the map's top-left corner.
+      #create3d-runner-marker is only a fallback for engines that cannot add the
+      GL circle layer. While it is NOT attached to a MapLibre marker it stays a
+      static child of .create3d-map-shell, and `will-change:transform` promotes
+      it to the positioned painting layer — so it was painted above the canvas
+      as a 22px orange dot in the top-left corner. MapLibre moves the element
+      into its canvas container when it is attached, so "direct child of the
+      shell" == "not attached" == keep it out of the render tree.
+   2. Terrain/Satellite toolbar vs. MapLibre navigation control: both were
+      pinned to the map's top-right corner and overlapped. The nav control is
+      pushed down below the toolbar instead.
+   3. Navigation chrome must never end up in the exported video (the bottom
+      right attribution is intentionally kept). */
+.create3d-map-shell>.create3d-runner-marker:not(.c3-dom-marker-on){display:none;visibility:hidden;pointer-events:none}
+.create3d-map-shell .maplibregl-ctrl-top-right{top:56px}
+.create3d-map-shell.recording .maplibregl-ctrl-top-right,
+.create3d-map-shell.recording .maplibregl-ctrl-top-left,
+.create3d-map-shell.recording .maplibregl-ctrl-bottom-left{visibility:hidden!important}
+@media(max-width:700px){.create3d-map-shell .maplibregl-ctrl-top-right{top:52px}}
+
+/* Live HUD overlay (elevation profile + dynamic pace). The very same painter
+   (drawHud) draws into the recorded frames, so preview == export. */
+.create3d-hud{position:absolute;inset:0;width:100%;height:100%;z-index:4;pointer-events:none;opacity:0;transition:opacity .25s ease}
+.create3d-map-shell.previewing .create3d-hud,.create3d-map-shell.recording .create3d-hud{opacity:1}
+
+/* ── Finish card — modern / sporty ─────────────────────────────────────────
+   The same layout is painted twice: once here as DOM (what you see after a
+   preview) and once with the 2D canvas API in drawFinishCard() so the card is
+   baked into the recorded video frames. Keep both in sync when editing. */
+.finish-card{position:relative;width:min(420px,calc(100% - 32px));padding:26px;border-radius:26px;background:linear-gradient(160deg,rgba(16,28,48,.95),rgba(6,12,22,.97));border:1px solid rgba(255,255,255,.13);box-shadow:0 30px 90px rgba(0,0,0,.55);overflow:hidden;animation:c3cardin .5s cubic-bezier(.2,.9,.25,1) both}
+.finish-card:before{content:"";position:absolute;left:0;right:0;top:0;height:5px;background:linear-gradient(90deg,#FC5200,#FF9A6B 55%,#38BDF8)}
+.finish-card:after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.55;background:repeating-linear-gradient(115deg,rgba(255,255,255,.06) 0 2px,transparent 2px 26px)}
+.finish-close{position:absolute;top:12px;right:12px;z-index:3;width:30px;height:30px;border:1px solid rgba(255,255,255,.14);border-radius:50%;background:rgba(255,255,255,.06);color:#cbd5e1;font-size:12px;line-height:1;cursor:pointer}
+.finish-close:hover{background:rgba(255,255,255,.13);color:#fff}
+.finish-top{position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px}
+.finish-kicker{position:relative;z-index:2;display:inline-flex;align-items:center;gap:7px;margin-right:auto;font-size:10px;letter-spacing:.18em;font-weight:950;color:#fc5200}
+.finish-kicker i{width:7px;height:7px;border-radius:50%;background:#fc5200;box-shadow:0 0 0 4px rgba(252,82,0,.18)}
+.finish-sport{padding:5px 10px;border:1px solid rgba(56,189,248,.28);border-radius:999px;background:rgba(56,189,248,.12);color:#7dd3fc;font-size:9px;font-weight:950;letter-spacing:.12em}
+.finish-est{padding:5px 9px;border:1px solid rgba(251,191,36,.35);border-radius:999px;background:rgba(251,191,36,.14);color:#fbbf24;font-size:9px;font-weight:950;letter-spacing:.12em}
+.finish-est[hidden]{display:none}
+.create3d-section-inline{margin:2px 0 10px}
+.create3d-section-inline h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:7px}
+.create3d-video-card .create3d-line-colors{grid-template-columns:repeat(3,1fr)}
+.finish-hero{position:relative;z-index:2;margin-bottom:12px}
+.finish-hero-label{display:block;margin-bottom:6px;color:#7f8ea3;font-size:9px;letter-spacing:.16em;font-weight:900}
+.finish-hero-row{display:flex;align-items:baseline;gap:8px}
+.finish-hero strong{font-size:58px;line-height:.9;font-weight:950;letter-spacing:-2px;color:#fff}
+.finish-unit{font-size:16px;font-weight:900;letter-spacing:.08em;color:#94a3b8}
+.finish-name{position:relative;z-index:2;margin-bottom:16px;color:#cbd5e1;font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.finish-primary{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.finish-chip{padding:11px 12px;border:1px solid rgba(252,82,0,.30);border-radius:14px;background:linear-gradient(135deg,rgba(252,82,0,.16),rgba(252,82,0,.03))}
+.finish-primary .finish-chip:nth-child(2){border-color:rgba(255,255,255,.10);background:linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02))}
+.finish-chip small{display:block;margin-bottom:4px;color:#94a3b8;font-size:8.5px;letter-spacing:.12em;font-weight:900}
+.finish-chip b{display:block;color:#ff9a6b;font-size:20px;font-weight:950;letter-spacing:-.4px}
+.finish-primary .finish-chip:nth-child(2) b{color:#fff}
+.finish-stats{position:relative;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.finish-stat{padding:10px 11px;border-radius:12px;background:rgba(255,255,255,.045)}
+.finish-stat small{display:block;margin-bottom:3px;color:#7f8ea3;font-size:8.5px;letter-spacing:.1em;font-weight:900}
+.finish-stat b{color:#e2e8f0;font-size:13px;font-weight:800}
+.finish-foot{position:relative;z-index:2;display:flex;align-items:center;gap:8px;margin-top:18px;color:rgba(255,255,255,.62);font-size:10px;font-weight:950;letter-spacing:.24em}
+.finish-dot{width:8px;height:8px;border-radius:50%;background:#fc5200}
+.finish-hero[hidden],.finish-primary[hidden],.finish-stats[hidden]{display:none}
+@keyframes c3cardin{from{opacity:0;transform:translateY(22px) scale(.97)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.finish-card{animation:none}}

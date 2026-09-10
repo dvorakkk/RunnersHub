@@ -22,7 +22,8 @@ const {
   finalizeGpxUpload
 } = require("../lib/routes");
 const { toggleLike, addComment, getComments } = require("../lib/social");
-const { getWallet, getUnlocks, claimShareReward, claimShareUnlock, claimAdReward, unlockRoute } = require("../lib/rewards");
+const { getWallet, getUnlocks, claimShareReward, claimAdReward, unlockRoute, claimUploadReward, addLikeReward, addCommentReward, claimFlyoverShare, hasFlyoverShareUnlock, chargeFlyover } = require("../lib/rewards");
+const { STRAVA_AUTHORIZE, makeState, readState, resolveActivityLink, getConnection, saveConnection, getActivity, getPublicActivity, listActivities, getActivityBundle } = require('../lib/strava');
 
 // Best-effort protection for warm Vercel instances. This is intentionally
 // conservative; a durable distributed limiter should be added later if the
@@ -45,8 +46,11 @@ const RATE_LIMITS = {
   getRewards:    { limit: 120, windowMs: 60 * 1000 },
   getRewardUnlocks:{ limit: 120, windowMs: 60 * 1000 },
   claimShareReward:{ limit: 12, windowMs: 24 * 60 * 60 * 1000 },
-  claimShareUnlock:{ limit: 12, windowMs: 24 * 60 * 60 * 1000 },
   claimAdReward: { limit: 6, windowMs: 24 * 60 * 60 * 1000 },
+  claimUploadReward: { limit: 8, windowMs: 24 * 60 * 60 * 1000 },
+  addLikeReward: { limit: 240, windowMs: 24 * 60 * 60 * 1000 },
+  addCommentReward: { limit: 120, windowMs: 24 * 60 * 60 * 1000 },
+  claimFlyoverShare: { limit: 12, windowMs: 24 * 60 * 60 * 1000 },
   unlockRoute:   { limit: 30, windowMs: 10 * 60 * 1000 }
 };
 
@@ -99,6 +103,36 @@ module.exports = async function handler(req, res) {
 
   const cacheableReadActions = new Set(["getHomeData", "getExploreData"]);
   const isCacheableRead = req.method === "GET" && cacheableReadActions.has(String(req.query?.action || ""));
+
+  // Strava OAuth callback is a browser GET and must be handled before the JSON dispatcher.
+  if (req.method === 'GET' && String(req.query?.action || '') === 'stravaCallback') {
+    try {
+      const state = readState(req.query.state);
+      if (req.query.error) throw new Error('Strava authorization was cancelled.');
+      if (!req.query.code) throw new Error('Strava did not return an authorization code.');
+      const cfg = require('../lib/config').CONFIG;
+      if (!cfg.STRAVA_CLIENT_ID || !cfg.STRAVA_CLIENT_SECRET || !cfg.STRAVA_CALLBACK_URL) throw new Error('Strava OAuth is not configured on the server.');
+      const body = new URLSearchParams({ client_id: cfg.STRAVA_CLIENT_ID, client_secret: cfg.STRAVA_CLIENT_SECRET, code: String(req.query.code), grant_type: 'authorization_code' });
+      const tokenResp = await fetch('https://www.strava.com/oauth/token', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+      const token = await tokenResp.json().catch(()=>({}));
+      if (!tokenResp.ok) throw new Error(token.message || 'Strava token exchange failed.');
+      await saveConnection(state.runnerId, token);
+      const target = new URL(cfg.STRAVA_POST_AUTH_URL || 'https://runnershub.vercel.app/#create3d');
+      target.searchParams.set('strava', 'connected');
+      target.searchParams.set('athlete', String(token.athlete?.firstname || ''));
+      res.status(302).setHeader('Location', target.toString());
+      res.end();
+      return;
+    } catch (e) {
+      const cfg = require('../lib/config').CONFIG;
+      const target = new URL(cfg.STRAVA_POST_AUTH_URL || 'https://runnershub.vercel.app/#create3d');
+      target.searchParams.set('strava', 'error');
+      target.searchParams.set('message', String(e.message || 'Strava connection failed').slice(0, 180));
+      res.status(302).setHeader('Location', target.toString());
+      res.end();
+      return;
+    }
+  }
 
   if (req.method !== "POST" && !isCacheableRead) {
     res.status(405).json({ ok: false, error: "Method not allowed", requestId });
@@ -205,15 +239,88 @@ module.exports = async function handler(req, res) {
       case "claimShareReward":
         result = await claimShareReward(payload.runnerId, payload.routeId, payload.platform, payload.postUrl);
         break;
-      case "claimShareUnlock":
-        result = await claimShareUnlock(payload.runnerId, payload.routeId, payload.platform, payload.postUrl);
+      case "claimUploadReward":
+        result = await claimUploadReward(payload.runnerId, payload.routeId);
+        break;
+      case "addLikeReward":
+        result = await addLikeReward(payload.runnerId, payload.routeId);
+        break;
+      case "addCommentReward":
+        result = await addCommentReward(payload.runnerId, payload.routeId);
         break;
       case "claimAdReward":
         result = await claimAdReward(payload.runnerId);
         break;
+      case "claimFlyoverShare":
+        result = await claimFlyoverShare(payload.runnerId, payload.activityId, payload.platform, payload.postUrl);
+        break;
       case "unlockRoute":
         result = await unlockRoute(payload.runnerId, payload.routeId);
         break;
+      case "stravaConnect": {
+        const runnerId = String(payload.runnerId || '');
+        if (!/^[A-Za-z0-9_-]{16,80}$/.test(runnerId)) throw new Error('Invalid anonymous runner ID');
+        const cfg = require('../lib/config').CONFIG;
+        if (!cfg.STRAVA_CLIENT_ID || !cfg.STRAVA_CLIENT_SECRET || !cfg.STRAVA_CALLBACK_URL) throw new Error('Strava integration is not configured yet.');
+        const params = new URLSearchParams({ client_id: cfg.STRAVA_CLIENT_ID, redirect_uri: cfg.STRAVA_CALLBACK_URL, response_type: 'code', approval_prompt: 'auto', scope: 'activity:read', state: makeState(runnerId) });
+        result = { authorizeUrl: STRAVA_AUTHORIZE + '?' + params.toString() };
+        break;
+      }
+      case "stravaStatus":
+        result = { connected: !!(await getConnection(payload.runnerId)), connection: await getConnection(payload.runnerId) };
+        if (result.connection) { delete result.connection.access_token; delete result.connection.refresh_token; delete result.connection.access_token_enc; delete result.connection.refresh_token_enc; }
+        break;
+      case "stravaResolveActivity":
+        result = await resolveActivityLink(payload.url);
+        break;
+      case "stravaImportActivity": {
+        const resolved = await resolveActivityLink(payload.url);
+        const activity = await getActivity(payload.runnerId, resolved.activityId);
+        result = { ...activity, resolvedUrl: resolved.resolvedUrl };
+        break;
+      }
+      case "stravaPublicImportActivity": {
+        result = await getPublicActivity(payload.url);
+        break;
+      }
+      // Legitimate per-user import: only the connected athlete's own activities.
+      case "stravaListActivities": {
+        result = { activities: await listActivities(payload.runnerId, payload.opts || {}) };
+        break;
+      }
+      case "stravaActivityBundle": {
+        const bundle = await getActivityBundle(payload.runnerId, payload.activityId, payload.activity || null);
+        result = { gpx: bundle.gpx, stats: bundle.stats };
+        break;
+      }
+      case "prepare3dFlyover": {
+        if (!CONFIG.THREE_D_RENDERER_URL) {
+          result = { ready: false, message: "Final 1080×1920 MP4 renderer is not configured yet. No points were charged." };
+          break;
+        }
+        const runnerId = String(payload.runnerId || '');
+        const activityId = String(payload.activityId || '');
+        if (!/^[A-Za-z0-9_-]{16,80}$/.test(runnerId)) throw new Error("Invalid anonymous runner ID");
+        if (!/^\d{5,}$/.test(activityId)) throw new Error("Valid Strava activity ID is required");
+        const cost = Number(payload.pointsCost || 40);
+        const pointsEnabled = !!require('../public/config.js').points.enabled;
+        let wallet = await getWallet(runnerId);
+        let unlockMethod = 'share';
+        if (pointsEnabled) {
+          if (Number(wallet.points || 0) >= cost) {
+            wallet = await chargeFlyover(runnerId, activityId, cost);
+            unlockMethod = 'points';
+          } else if (await hasFlyoverShareUnlock(runnerId, activityId)) {
+            unlockMethod = 'share';
+          } else {
+            throw new Error(`You have ${Number(wallet.points || 0)} points. This export needs ${cost}. Verify a share to use the fallback unlock.`);
+          }
+        } else if (!(await hasFlyoverShareUnlock(runnerId, activityId))) {
+          throw new Error('Points are OFF. Verify a share before generating this flyover.');
+        }
+        result = { ready: true, rendererUrl: CONFIG.THREE_D_RENDERER_URL, unlockMethod, wallet };
+        break;
+      }
       default:
         res.status(400).json({ ok: false, error: "Unknown action: " + action, requestId });
         return;
@@ -237,7 +344,8 @@ module.exports = async function handler(req, res) {
         if (serialized && serialized !== '{}') safeError = serialized;
       } catch (_) {}
     }
-    res.status(500).json({
+    const statusCode = Number(e?.statusCode || (action === 'stravaPublicImportActivity' ? 422 : 500));
+    res.status(statusCode >= 400 && statusCode <= 599 ? statusCode : 500).json({
       ok: false,
       error: safeError,
       requestId
