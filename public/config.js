@@ -76,7 +76,7 @@ const RUNNERSHUB_CONFIG = Object.freeze({
   }),
 
   shareUnlock: Object.freeze({
-    enabled: false,
+    enabled: true,
     dailyLimit: 3,
     requirePostLink: true
   }),
