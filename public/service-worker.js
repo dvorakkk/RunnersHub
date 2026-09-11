@@ -1,5 +1,5 @@
 /* RunnersHub Progressive Web App (PWA) Service Worker */
-const CACHE_NAME = 'runnershub-v29';
+const CACHE_NAME = 'runnershub-v31';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
@@ -9,6 +9,7 @@ const PRECACHE_ASSETS = [
   '/3dflyover/3dflyover.js',
   '/3dflyover/camera.js',
   '/3dflyover/gpx-parser.js',
+  '/3dflyover/mp4-remux.js',
   '/3dflyover/route-simplifier.js',
   '/3dflyover/3dflyover.css'
 ];

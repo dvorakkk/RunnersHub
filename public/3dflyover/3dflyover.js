@@ -133,6 +133,27 @@ import { parseGpxPoints } from './gpx-parser.js?v=28';
     }
     return list[list.length-1];
   }
+  // Safety net: only replace the recording with the remuxed version if the
+  // browser can actually decode it and reports a real duration. If the remux
+  // ever produces a bad file we silently keep the original MediaRecorder output.
+  function c3VideoPlays(blob,timeoutMs){
+    return new Promise(res=>{
+      let url='',done=false;
+      const finish=ok=>{if(done)return;done=true;clearTimeout(timer);
+        try{vid.pause();vid.removeAttribute('src');vid.load();}catch(_){}
+        if(url){try{URL.revokeObjectURL(url);}catch(_){}}
+        res(!!ok);};
+      const vid=document.createElement('video');
+      const timer=setTimeout(()=>finish(false),timeoutMs||8000);
+      try{
+        vid.muted=true;vid.playsInline=true;vid.preload='metadata';
+        vid.addEventListener('loadedmetadata',()=>finish(vid.duration>0.05&&vid.videoWidth>0));
+        vid.addEventListener('error',()=>finish(false));
+        url=URL.createObjectURL(blob);
+        vid.src=url;
+      }catch(_){finish(false);}
+    });
+  }
   // Coarse pointer / mobile UA → use the lightweight recording profile.
   function c3IsMobile(){
     try{
@@ -1657,6 +1678,7 @@ import { parseGpxPoints } from './gpx-parser.js?v=28';
     paintFrame(false);               // paint the first frame right away
     tick();
     try{
+      const recStartedAt=performance.now();
       rec.start(1000);
       stopPreview();
       playPreview();
@@ -1672,8 +1694,20 @@ import { parseGpxPoints } from './gpx-parser.js?v=28';
       try{if(rec.state!=='inactive')rec.stop();}catch(_){}
       await new Promise(res=>{if(rec.state==='inactive'){res();return;}rec.addEventListener('stop',res,{once:true});setTimeout(res,4000);});
       await new Promise(r=>setTimeout(r,300));
-      const blob=new Blob(chunks,{type:mime});
+      let blob=new Blob(chunks,{type:mime});
       if(!blob.size)return {ok:false,error:'Recording produced no data. Try Chrome with hardware acceleration enabled.'};
+      // MediaRecorder writes a FRAGMENTED MP4 with duration 0 → phone galleries
+      // and Instagram reject it ("cannot access media", 0s). Rewrite it as a
+      // normal progressive MP4 with a real duration. Never worse than before:
+      // if the remux fails we simply keep the original blob.
+      if(vext==='mp4'){
+        try{
+          const mod=await import('./mp4-remux.js?v=31');
+          const fixed=await (mod.remuxRecordedMp4||mod.default)(blob,(performance.now()-recStartedAt)/1000,fps);
+          if(fixed&&fixed.size&&await c3VideoPlays(fixed)){blob=fixed;console.info('[flyover] MP4 remuxed to progressive (duration fixed)');}
+          else console.warn('[flyover] MP4 remux not usable — keeping MediaRecorder output');
+        }catch(e){console.warn('[flyover] MP4 remux failed:',e);}
+      }
       const url=URL.createObjectURL(blob);
       const stamp=String(Date.now()).slice(-10);
       state.lastVideo={blob,url,name:`runnershub-flyover-${stamp}.${vext}`};
